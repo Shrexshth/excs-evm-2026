@@ -1,0 +1,297 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;600&family=DM+Mono:wght@300;400;500&display=swap');
+
+/* ── ROOT VARIABLES ───────────────────────────────────────── */
+:root {
+  --sf:       #FF6B35;
+  --sf-d:     #C94F18;
+  --sf-s:     rgba(255,107,53,0.13);
+  --gr:       #138808;
+  --gr-l:     #2ECC40;
+  --gr-d:     #0A5C04;
+  --ck:       #0047AB;
+  --ck-l:     #1565C0;
+  --gold:     #C8961E;
+  --gold-l:   #F0B429;
+  --navy:     #060818;
+
+  /* DARK default — matching source HTML */
+  --bg:       #060818;
+  --bg2:      #0D1226;
+  --bgc:      #111827;
+  --bgc2:     #1a2236;
+  --t1:       #F0EDE6;
+  --t2:       #A8A5A0;
+  --t3:       #565660;
+  --bdr:      rgba(255,255,255,0.07);
+  --bdr-md:   rgba(255,255,255,0.13);
+  --sh:       0 8px 40px rgba(0,0,0,0.6);
+  --sh-xl:    0 20px 60px rgba(0,0,0,0.8);
+  --glow-sf:  0 0 40px rgba(255,107,53,0.32);
+  --glow-ck:  0 0 40px rgba(0,71,171,0.42);
+  --glow-gr:  0 0 40px rgba(19,136,8,0.32);
+  --glow-gold:0 0 40px rgba(200,150,30,0.32);
+  --font-s:   'Cormorant Garamond', Georgia, serif;
+  --font-b:   'Rajdhani', sans-serif;
+  --font-d:   'Noto Sans Devanagari', sans-serif;
+  --font-m:   'DM Mono', monospace;
+}
+
+[data-theme="light"] {
+  --bg:       #F4F1EA;
+  --bg2:      #EAE6DC;
+  --bgc:      #FFFFFF;
+  --bgc2:     #F8F5EE;
+  --t1:       #12121A;
+  --t2:       #484850;
+  --t3:       #909099;
+  --bdr:      rgba(0,0,0,0.08);
+  --bdr-md:   rgba(0,0,0,0.14);
+  --sh:       0 8px 40px rgba(0,0,0,0.10);
+  --sh-xl:    0 20px 60px rgba(0,0,0,0.14);
+  --glow-sf:  0 0 30px rgba(255,107,53,0.22);
+  --glow-ck:  0 0 30px rgba(0,71,171,0.16);
+  --glow-gr:  0 0 30px rgba(19,136,8,0.22);
+  --glow-gold:0 0 30px rgba(200,150,30,0.22);
+  --sf-s:     rgba(255,107,53,0.09);
+}
+
+/* ── BASE ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-b);
+  background: var(--bg);
+  color: var(--t1);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background .5s, color .5s;
+}
+button { font-family: inherit; cursor: pointer; border: none; outline: none; background: none; }
+input, select, textarea { font-family: inherit; outline: none; }
+a { text-decoration: none; color: inherit; }
+img { display: block; max-width: 100%; }
+
+/* ── TRICOLOR STRIP (glowing shimmer) ────────────────────── */
+.tristrip {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  z-index: 2000;
+  display: flex;
+}
+.ts-s { flex: 1; position: relative; overflow: hidden; }
+.ts-s:nth-child(1) { background: var(--sf); }
+.ts-s:nth-child(2) { background: linear-gradient(90deg,#ccc,#fff,#ccc); }
+.ts-s:nth-child(3) { background: var(--gr); }
+.ts-s::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.85),transparent);
+  animation: shimStrip 3s infinite;
+}
+.ts-s:nth-child(1)::after { animation-delay: 0s; }
+.ts-s:nth-child(2)::after { animation-delay: .4s; }
+.ts-s:nth-child(3)::after { animation-delay: .8s; }
+
+/* ── LAYOUT ───────────────────────────────────────────────── */
+.page-wrap { padding-top: 70px; min-height: 100vh; }
+.container  { max-width: 1260px; margin: 0 auto; padding: 0 40px; }
+.sec        { max-width: 1260px; margin: 0 auto; padding: 80px 40px; }
+
+/* ── EYEBROW LABEL ────────────────────────────────────────── */
+.eye {
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: .22em; text-transform: uppercase;
+  color: var(--sf); margin-bottom: 10px;
+}
+.bigt {
+  font-family: var(--font-s);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 300; color: var(--t1); line-height: 1.2;
+}
+
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.btn-p {
+  padding: 13px 30px;
+  background: linear-gradient(135deg, var(--sf), var(--sf-d));
+  color: #fff; border-radius: 8px;
+  font-size: .85rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  box-shadow: var(--glow-sf);
+  transition: all .3s;
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-p::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg,transparent,rgba(255,255,255,.18),transparent);
+  transform: translateX(-110%); transition: transform .45s;
+}
+.btn-p:hover::after { transform: translateX(110%); }
+.btn-p:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(255,107,53,.58); }
+
+.btn-o {
+  padding: 13px 30px;
+  background: transparent;
+  border: 1.5px solid var(--bdr-md);
+  border-radius: 8px; color: var(--t1);
+  font-size: .85rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  transition: all .3s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-o:hover { border-color: var(--sf); color: var(--sf); box-shadow: inset 0 0 20px var(--sf-s); }
+
+.btn-ck {
+  padding: 13px 30px;
+  background: linear-gradient(135deg, var(--ck), var(--ck-l));
+  color: #fff; border-radius: 8px;
+  font-size: .85rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  box-shadow: var(--glow-ck);
+  transition: all .3s; position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-ck:hover { transform: translateY(-2px); box-shadow: 0 0 55px rgba(0,71,171,.6); }
+
+.btn-gr {
+  padding: 13px 30px;
+  background: linear-gradient(135deg, var(--gr), var(--gr-d));
+  color: #fff; border-radius: 8px;
+  font-size: .85rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  box-shadow: var(--glow-gr);
+  transition: all .3s; position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-gr:hover { transform: translateY(-2px); box-shadow: 0 0 55px rgba(19,136,8,.55); }
+
+/* ── INPUTS ──────────────────────────────────────────────── */
+.flbl {
+  display: block;
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 7px;
+}
+.finp {
+  width: 100%; padding: 13px 16px;
+  background: var(--bg2);
+  border: 1.5px solid var(--bdr);
+  border-radius: 8px; color: var(--t1);
+  font-size: .95rem; transition: all .25s;
+}
+.finp:focus { border-color: var(--sf); background: var(--bgc); box-shadow: 0 0 0 3px var(--sf-s); }
+.finp::placeholder { color: var(--t3); }
+.finp-blue:focus { border-color: var(--ck); box-shadow: 0 0 0 3px rgba(0,71,171,.1); }
+.fgrp { margin-bottom: 18px; }
+
+/* ── PLACE GLOW ANIMATIONS ───────────────────────────────── */
+/* These glow INSIDE the element — contained, clean, non-leaking */
+@keyframes placeGlow {
+  0%, 100% { opacity: .55; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.12); }
+}
+.glow-blob {
+  pointer-events: none;
+  border-radius: 50%;
+  position: absolute;
+  animation: placeGlow 3.5s ease-in-out infinite;
+}
+.glow-blob-sf  { background: radial-gradient(circle, rgba(255,107,53,.22) 0%, transparent 68%); }
+.glow-blob-ck  { background: radial-gradient(circle, rgba(0,71,171,.26) 0%, transparent 68%); }
+.glow-blob-gr  { background: radial-gradient(circle, rgba(19,136,8,.22) 0%, transparent 68%); }
+.glow-blob-gold{ background: radial-gradient(circle, rgba(200,150,30,.24) 0%, transparent 68%); }
+
+/* ── LIVE / BLINK DOTS ───────────────────────────────────── */
+@keyframes bdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.7)} }
+.bdot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--sf); box-shadow:0 0 8px var(--sf);
+  animation: bdot 1.4s infinite; display:inline-block; flex-shrink:0;
+}
+.livedot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--gr-l); box-shadow:0 0 10px var(--gr);
+  animation: bdot 1.3s infinite; display:inline-block; flex-shrink:0;
+}
+
+/* ── TRICOLOR MINI-STRIP (forms, cards) ──────────────────── */
+.tri-bar { height:3px; display:flex; border-radius:3px; overflow:hidden; }
+.tri-bar .t1 { flex:1; background:var(--sf); }
+.tri-bar .t2 { flex:1; background:#bbb; }
+.tri-bar .t3 { flex:1; background:var(--gr); }
+
+/* ── PILL TAGS ───────────────────────────────────────────── */
+.pill-sf  { background:rgba(255,107,53,.12); color:var(--sf);  border:1px solid rgba(255,107,53,.22); }
+.pill-gr  { background:rgba(19,136,8,.12);   color:var(--gr-l);border:1px solid rgba(19,136,8,.22); }
+.pill-ck  { background:rgba(0,71,171,.12);   color:#64B5F6;    border:1px solid rgba(0,71,171,.22); }
+.pill-gold{ background:rgba(200,150,30,.12); color:var(--gold-l);border:1px solid rgba(200,150,30,.22); }
+.tag-pill {
+  padding:3px 10px; border-radius:100px;
+  font-size:.62rem; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+}
+
+/* ── ANIMATIONS ─────────────────────────────────────────── */
+@keyframes shimStrip  { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+@keyframes spinCW     { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes spinCCW    { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
+@keyframes floatY     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+@keyframes fadeUp     { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+@keyframes popIn      { 0%{transform:scale(.88) translateY(10px);opacity:0} 100%{transform:scale(1) translateY(0);opacity:1} }
+@keyframes popCheck   { 0%{transform:scale(0)} 80%{transform:scale(1.3)} 100%{transform:scale(1)} }
+@keyframes barFill    { from{width:0} to{width:var(--w)} }
+@keyframes scanLine   { 0%{top:-4px} 100%{top:calc(100% + 4px)} }
+@keyframes orbitDot   { from{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)} to{transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)} }
+
+/* ── TOAST ───────────────────────────────────────────────── */
+.toast-wrap {
+  position: fixed; bottom:28px; right:28px;
+  z-index:5000;
+}
+
+/* ── MODAL ───────────────────────────────────────────────── */
+.modal-ovl {
+  position: fixed; inset:0; z-index:3000;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(14px);
+  display: none; align-items:center; justify-content:center;
+}
+.modal-ovl.open { display:flex; }
+.modal {
+  background: var(--bgc); border:1px solid var(--bdr);
+  border-radius: 18px; width:440px; max-width:95vw;
+  overflow: hidden;
+  animation: popIn .35s cubic-bezier(.36,.07,.19,.97);
+}
+.modal-body { padding:36px; }
+.modal-h {
+  font-family:var(--font-s); font-size:1.65rem;
+  font-weight:400; color:var(--t1); margin-bottom:6px;
+}
+.modal-s { font-size:.8rem; color:var(--t3); margin-bottom:26px; line-height:1.7; }
+
+/* ── SECTION BG ──────────────────────────────────────────── */
+.bg-alt { background:var(--bgc); border-top:1px solid var(--bdr); border-bottom:1px solid var(--bdr); }
+.bg-mesh {
+  background:
+    radial-gradient(ellipse 65% 55% at 80% 35%, rgba(255,107,53,.065) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 55% at 18% 72%, rgba(19,136,8,.05) 0%, transparent 58%),
+    radial-gradient(ellipse 42% 42% at 52% 8%, rgba(0,71,171,.045) 0%, transparent 54%),
+    var(--bg);
+}
+
+/* ── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:var(--bg2); }
+::-webkit-scrollbar-thumb { background:var(--bdr-md); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--sf); }
+
+/* ── RESPONSIVE ──────────────────────────────────────────── */
+@media (max-width:900px) {
+  .container, .sec { padding-left:18px; padding-right:18px; }
+  .hide-mob { display:none !important; }
+}
+@media (max-width:560px) {
+  .hide-sm { display:none !important; }
+}
