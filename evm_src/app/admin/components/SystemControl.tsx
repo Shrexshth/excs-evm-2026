@@ -1,8 +1,8 @@
 // src/app/admin/components/SystemControl.tsx
 // Super Admin God Mode: Start / Pause / Complete / Kill Switch + Results publish
 
-"use client";
 import { useState, useEffect, useCallback } from "react";
+import { Play, Pause, Lock, ShieldAlert, CheckCircle2, Calendar, XCircle, Eye, EyeOff } from "lucide-react";
 
 // 👇 FIXED: Removed broken imports and defined Props inline
 interface Props { 
@@ -18,14 +18,14 @@ interface ElectionState {
 type ActionKey = "ACTIVE" | "PAUSED" | "COMPLETED" | "CANCELLED";
 
 const SYSTEM_ACTIONS: {
-  key: ActionKey; label: string; icon: string;
+  key: ActionKey; label: string; icon: React.ReactNode;
   desc: string; color: string; glow: string;
   confirmText: string; dangerous?: boolean;
 }[] = [
   {
     key: "ACTIVE",
     label: "Start Polling",
-    icon: "▶️",
+    icon: <Play size={28} />,
     desc: "Opens the voting portal. Students can now cast their votes.",
     color: "var(--gr-l)",
     glow: "rgba(19,136,8,.25)",
@@ -34,7 +34,7 @@ const SYSTEM_ACTIONS: {
   {
     key: "PAUSED",
     label: "Pause Polling",
-    icon: "⏸️",
+    icon: <Pause size={28} />,
     desc: "Temporarily suspends voting. No new votes will be accepted.",
     color: "var(--gold)",
     glow: "rgba(200,150,30,.25)",
@@ -43,7 +43,7 @@ const SYSTEM_ACTIONS: {
   {
     key: "COMPLETED",
     label: "Close Polling",
-    icon: "🔒",
+    icon: <Lock size={28} />,
     desc: "Permanently closes the election. Cannot be re-opened.",
     color: "var(--ck-l)",
     glow: "rgba(0,71,171,.25)",
@@ -53,7 +53,7 @@ const SYSTEM_ACTIONS: {
   {
     key: "CANCELLED",
     label: "Kill Switch",
-    icon: "🚨",
+    icon: <ShieldAlert size={28} />,
     desc: "EMERGENCY: Immediately cancels the entire election.",
     color: "#EF4444",
     glow: "rgba(239,68,68,.25)",
@@ -67,7 +67,7 @@ export function SystemControl({ showToast }: Props) {
   const [loading, setLoading]   = useState(true);
   const [acting, setActing]     = useState<string | null>(null);
 
-  const getAuthToken = () => localStorage.getItem("accessToken") || localStorage.getItem("temp_user_id") || "superadmin";
+  const getAuthToken = () => localStorage.getItem("accessToken") || "";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -136,12 +136,12 @@ export function SystemControl({ showToast }: Props) {
     </div>
   );
 
-  const statusInfo: Record<string, { label: string; color: string; bg: string }> = {
-    ACTIVE:    { label: "🟢 Polling Active",    color: "var(--gr-l)",  bg: "rgba(19,136,8,.1)"   },
-    PAUSED:    { label: "⏸️ Polling Paused",    color: "var(--gold)",  bg: "rgba(200,150,30,.1)" },
-    COMPLETED: { label: "✅ Election Closed",   color: "var(--ck-l)", bg: "rgba(0,71,171,.1)"   },
-    CANCELLED: { label: "❌ CANCELLED",         color: "#EF4444",     bg: "rgba(239,68,68,.1)"  },
-    SCHEDULED: { label: "📅 Scheduled",         color: "var(--t2)",   bg: "var(--bg2)"          },
+  const statusInfo: Record<string, { label: React.ReactNode; color: string; bg: string }> = {
+    ACTIVE:    { label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><Play size={12} /> Polling Active</span>,    color: "var(--gr-l)",  bg: "rgba(19,136,8,.1)"   },
+    PAUSED:    { label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><Pause size={12} /> Polling Paused</span>,    color: "var(--gold)",  bg: "rgba(200,150,30,.1)" },
+    COMPLETED: { label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><CheckCircle2 size={12} /> Election Closed</span>,   color: "var(--ck-l)", bg: "rgba(0,71,171,.1)"   },
+    CANCELLED: { label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><XCircle size={12} /> CANCELLED</span>,         color: "#EF4444",     bg: "rgba(239,68,68,.1)"  },
+    SCHEDULED: { label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><Calendar size={12} /> Scheduled</span>,         color: "var(--t2)",   bg: "var(--bg2)"          },
   };
   const si = statusInfo[election?.status || "SCHEDULED"] || statusInfo.SCHEDULED;
 
@@ -193,9 +193,9 @@ export function SystemControl({ showToast }: Props) {
               padding: "5px 14px", borderRadius: "100px",
               background: election.resultsPublished ? "rgba(19,136,8,.1)" : "rgba(100,100,100,.1)",
               color: election.resultsPublished ? "var(--gr-l)" : "var(--t3)",
-              fontSize: ".68rem", fontWeight: 700,
+              fontSize: ".68rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px"
             }}>
-              {election.resultsPublished ? "📢 Results Public" : "🔒 Results Hidden"}
+              {election.resultsPublished ? <><Eye size={12} /> Results Public</> : <><EyeOff size={12} /> Results Hidden</>}
             </div>
           </div>
           <div style={{ fontSize: ".76rem", color: "var(--t3)", marginTop: "8px" }}>
@@ -227,7 +227,7 @@ export function SystemControl({ showToast }: Props) {
                 pointerEvents: "none",
               }} />
 
-              <div style={{ fontSize: "2rem", marginBottom: "10px" }}>{action.icon}</div>
+              <div style={{ fontSize: "2rem", marginBottom: "10px", display: "flex" }}>{action.icon}</div>
               <div style={{
                 fontSize: ".92rem", fontWeight: 700, color: action.color,
                 marginBottom: "6px",
@@ -298,8 +298,8 @@ export function SystemControl({ showToast }: Props) {
           flexWrap: "wrap", gap: "16px",
         }}>
           <div>
-            <div style={{ fontSize: ".92rem", fontWeight: 600, color: "var(--t1)", marginBottom: "4px" }}>
-              {election?.resultsPublished ? "📢 Results are PUBLIC" : "🔒 Results are HIDDEN"}
+            <div style={{ fontSize: ".92rem", fontWeight: 600, color: "var(--t1)", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+              {election?.resultsPublished ? <><Eye size={16} color="var(--gr-l)" /> Results are PUBLIC</> : <><EyeOff size={16} /> Results are HIDDEN</>}
             </div>
             <div style={{ fontSize: ".78rem", color: "var(--t3)" }}>
               {election?.resultsPublished
@@ -327,7 +327,7 @@ export function SystemControl({ showToast }: Props) {
             onMouseLeave={e => { e.currentTarget.style.transform = ""; }}
           >
             {acting === "results" ? "Updating…"
-              : election?.resultsPublished ? "🔒 Hide Results" : "📢 Publish Results"}
+              : election?.resultsPublished ? <span style={{display: "flex", alignItems: "center", gap: "6px"}}><EyeOff size={14} /> Hide Results</span> : <span style={{display: "flex", alignItems: "center", gap: "6px"}}><Eye size={14} /> Publish Results</span>}
           </button>
         </div>
 

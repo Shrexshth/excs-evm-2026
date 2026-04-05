@@ -1,6 +1,7 @@
 // src/app/api/admin/candidates/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db"; 
+import { verifyAdmin } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,7 +9,8 @@ export async function POST(req: NextRequest) {
     const { name, dob, gender, education, bio, symbol, color, partyAbbr, adminToken } = body;
 
     // Security Check
-    if (!adminToken || adminToken.startsWith('VIT-')) {
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) {
       return NextResponse.json({ success: false, message: "Unauthorized access." }, { status: 403 });
     }
 
@@ -35,7 +37,8 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const { id, status, adminToken } = await req.json();
-    if (!adminToken || adminToken.startsWith('VIT-')) return NextResponse.json({ success: false }, { status: 403 });
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) return NextResponse.json({ success: false }, { status: 403 });
     const res = await sql`UPDATE "Candidate" SET status = ${status} WHERE id = ${Number(id)} RETURNING *`;
     return NextResponse.json({ success: true, candidate: res[0] });
   } catch (err) { 
@@ -48,8 +51,9 @@ export async function DELETE(req: NextRequest) {
     const id = Number(req.nextUrl.searchParams.get("id"));
     const adminToken = req.headers.get("x-admin-token"); 
     
-    // Only Super Admin can delete
-    if (adminToken !== "superadmin") return NextResponse.json({ success: false, message: "Super Admin only." }, { status: 403 });
+    // Only Super Admin & Admins can delete candidates
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) return NextResponse.json({ success: false, message: "Admin access required." }, { status: 403 });
 
     const voteCount = await sql`SELECT COUNT(*) as count FROM "Vote" WHERE "candidateId" = ${id}`;
     if (parseInt(voteCount[0].count) > 0) return NextResponse.json({ success: false, message: "Cannot delete. Votes exist." }, { status: 409 });

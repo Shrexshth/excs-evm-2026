@@ -31,8 +31,12 @@ const STATIC_CANDIDATES = [
   },
 ];
 
-function CandidateCard({ c, onVote }) {
+function CandidateCard({ c }) {
   const [hov, setHov] = useState(false);
+  
+  // Decide whether the symbol is an image URL or an emoji
+  const isImage = c.symbol && (c.symbol.startsWith('/') || c.symbol.startsWith('http') || c.symbol.startsWith('data:image'));
+  
   return (
     <div style={{
       background:"var(--bgc)",border:"1px solid var(--bdr)",
@@ -45,41 +49,50 @@ function CandidateCard({ c, onVote }) {
     onMouseEnter={()=>setHov(true)}
     onMouseLeave={()=>setHov(false)}
     >
-      {/* Internal place glow — contained, shines inside card */}
+      {/* Internal place glow */}
       <div style={{
         position:"absolute",inset:0,borderRadius:"16px",
-        background:`radial-gradient(circle at 50% -10%,${c.glowBg},transparent 55%)`,
+        background:`radial-gradient(circle at 50% -10%,${c.color}22,transparent 55%)`,
         opacity: hov?1:0, transition:"opacity .4s",
         pointerEvents:"none",
       }}/>
 
       {/* Color bar */}
-      <div style={{height:"4px",background:c.bar}}/>
+      <div style={{height:"4px",background:c.color}}/>
 
       <div style={{padding:"30px"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:"20px"}}>
-          {/* Avatar */}
+          {/* Avatar / Symbol */}
           <div style={{
             width:"72px",height:"72px",borderRadius:"50%",
             display:"grid",placeItems:"center",fontSize:"2.2rem",
             border:"2px solid var(--bdr)",background:"var(--bg2)",
-            transition:"transform .3s",
+            transition:"transform .3s", overflow: "hidden",
             transform: hov?"scale(1.08)":"none",
-          }}>{c.icon}</div>
+          }}>
+            {isImage ? (
+              <img src={c.symbol} alt={c.name} style={{width:"100%", height:"100%", objectFit:"cover"}} />
+            ) : (
+              c.symbol
+            )}
+          </div>
           {/* Pill */}
-          <span className={`tag-pill ${c.pill}`}>Candidate {c.serial}</span>
+          <span className="tag-pill" style={{background: `${c.color}22`, color: c.color}}>
+            {c.party || "Ind."}
+          </span>
         </div>
 
         <div style={{fontFamily:"var(--font-s)",fontSize:"1.55rem",fontWeight:500,color:"var(--t1)",marginBottom:"3px"}}>{c.name}</div>
-        <div style={{fontSize:".72rem",color:"var(--t3)",letterSpacing:".06em",marginBottom:"16px"}}>{c.year} · {c.branch} · {c.rollNo}</div>
-        <div style={{fontSize:".84rem",color:"var(--t2)",lineHeight:1.75}}>{c.manifesto}</div>
+        <div style={{fontSize:".72rem",color:"var(--t3)",letterSpacing:".06em",marginBottom:"16px"}}>{c.education}</div>
+        <div style={{fontSize:".84rem",color:"var(--t2)",lineHeight:1.75}}>{c.bio || "No manifesto provided."}</div>
       </div>
 
       <div style={{padding:"18px 30px",borderTop:"1px solid var(--bdr)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div>
           <div style={{fontSize:".63rem",fontWeight:700,letterSpacing:".14em",textTransform:"uppercase",color:"var(--t3)",marginBottom:"7px"}}>Key Agenda</div>
           <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-            {c.tags.map(t=>(
+            {/* Split tags string into an array if it's not one already */}
+            {(Array.isArray(c.tags) ? c.tags : []).map(t=>(
               <span key={t} style={{padding:"3px 9px",borderRadius:"100px",border:"1px solid var(--bdr)",fontSize:".63rem",fontWeight:600,color:"var(--t3)"}}>{t}</span>
             ))}
           </div>
@@ -103,13 +116,19 @@ function CandidateCard({ c, onVote }) {
 }
 
 export default function CandidatesPage() {
-  const [candidates, setCandidates] = useState(STATIC_CANDIDATES);
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
     fetch("/api/candidates?status=active")
       .then(r=>r.ok?r.json():null)
-      .then(d=>{ if(d?.data?.length) setCandidates(d.data); })
-      .catch(()=>{});
+      .then(d=>{ 
+          if(d?.candidates?.length) {
+              setCandidates(d.candidates); 
+          }
+      })
+      .catch(()=>{})
+      .finally(() => setLoading(false));
   },[]);
 
   return (
@@ -117,16 +136,25 @@ export default function CandidatesPage() {
       <Navbar/>
       <div className="sec page-wrap">
         <div className="eye">Contesting Candidates</div>
-        <div className="bigt">Student Council President — 2025</div>
+        <div className="bigt">Student Council President — 2025-26</div>
         <p style={{fontSize:".86rem",color:"var(--t3)",marginTop:"8px"}}>
-          Polling closes 23 Feb 2025 at 5:00 PM · One vote per student · NOTA available
+          Polling closes 19 April 2026 at 5:00 PM · One vote per student · NOTA available
         </p>
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"28px",marginTop:"44px"}} className="cand-grid">
-          {candidates.map(c=>(
-            <CandidateCard key={c.id} c={c}/>
-          ))}
-        </div>
+        {loading ? (
+             <div style={{textAlign: "center", padding: "60px", color: "var(--t3)"}}>Loading candidates...</div>
+        ) : candidates.length === 0 ? (
+             <div style={{textAlign: "center", padding: "60px", color: "var(--t3)", background: "var(--bgc)", borderRadius: "16px", marginTop: "40px", border: "1px solid var(--bdr)"}}>
+                 <h3>No active candidates found.</h3>
+                 <p style={{fontSize: ".85rem", marginTop: "8px"}}>Candidates will appear here once registered and approved by the Election Commission.</p>
+             </div>
+        ) : (
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"28px",marginTop:"44px"}} className="cand-grid">
+            {candidates.map(c=>(
+                <CandidateCard key={c.id} c={c}/>
+            ))}
+            </div>
+        )}
 
         {/* NOTA notice */}
         <div style={{

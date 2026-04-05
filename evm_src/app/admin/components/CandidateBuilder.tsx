@@ -1,8 +1,8 @@
 // src/app/admin/components/CandidateBuilder.tsx
 // Add / edit / remove candidates — connected to /api/admin/candidates
 
-"use client";
 import { useState, useEffect, useCallback } from "react";
+import { X, Plus, Trash2, UserPlus, Landmark as LandmarkIcon } from "lucide-react";
 
 // 👇 FIXED: Removed the broken imports and defined the Props directly here
 interface Props { 
@@ -47,6 +47,8 @@ export function CandidateBuilder({ showToast }: Props) {
   const [form, setForm]             = useState(emptyForm);
   const [saving, setSaving]         = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [imageFile, setImageFile]   = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,7 +64,7 @@ export function CandidateBuilder({ showToast }: Props) {
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  const getAuthToken = () => localStorage.getItem("accessToken") || localStorage.getItem("temp_user_id") || "superadmin";
+  const getAuthToken = () => localStorage.getItem("accessToken") || "";
 
   const submit = async () => {
     if (!form.name || !form.dob || !form.symbol) {
@@ -72,6 +74,28 @@ export function CandidateBuilder({ showToast }: Props) {
     setSaving(true);
     try {
       const token = getAuthToken();
+
+      let finalSymbolUrl = form.symbol;
+      
+      // Upload image first if one was selected
+      if (imageFile) {
+          const formData = new FormData();
+          formData.append("image", imageFile);
+          
+          const uploadRes = await fetch("/api/admin/upload", {
+              method: "POST",
+              headers: { "x-admin-token": token },
+              body: formData,
+          });
+          
+          const uploadJson = await uploadRes.json();
+          if (!uploadJson.success) {
+              showToast("Image upload failed: " + uploadJson.message, "error");
+              setSaving(false);
+              return;
+          }
+          finalSymbolUrl = uploadJson.url;
+      }
       
       const body = {
         name:           form.name,
@@ -79,7 +103,7 @@ export function CandidateBuilder({ showToast }: Props) {
         gender:         form.gender,
         education:      form.education || null,
         bio:            form.bio || null,
-        symbol:         form.symbol,
+        symbol:         finalSymbolUrl,
         color:          form.color,
         nominationDate: form.nominationDate || null,
         serialNo:       form.serialNo ? parseInt(form.serialNo) : null,
@@ -98,6 +122,8 @@ export function CandidateBuilder({ showToast }: Props) {
       if (j.success) {
         showToast(`Candidate "${form.name}" added successfully`, "success");
         setForm(emptyForm);
+        setImageFile(null);
+        setImagePreview(null);
         setShowForm(false);
         load();
       } else {
@@ -137,6 +163,20 @@ export function CandidateBuilder({ showToast }: Props) {
     finally { setDeletingId(null); }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          if (file.size > 5 * 1024 * 1024) {
+              showToast("Image must be smaller than 5MB", "warn");
+              return;
+          }
+          setImageFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => setImagePreview(reader.result as string);
+          reader.readAsDataURL(file);
+      }
+  };
+
   const statusColors: Record<string, { bg: string; color: string }> = {
     ACTIVE:       { bg: "rgba(19,136,8,.1)", color: "var(--gr-l)" },
     WITHDRAWN:    { bg: "rgba(255,107,53,.1)", color: "var(--sf)" },
@@ -154,7 +194,7 @@ export function CandidateBuilder({ showToast }: Props) {
             {candidates.length} candidates registered
           </div>
         </div>
-        <button
+          <button
           onClick={() => setShowForm(v => !v)}
           style={{
             display: "flex", alignItems: "center", gap: "8px",
@@ -166,7 +206,7 @@ export function CandidateBuilder({ showToast }: Props) {
             letterSpacing: ".08em", cursor: "pointer", transition: "all .2s",
           }}
         >
-          {showForm ? "✕ Cancel" : "＋ Add Candidate"}
+          {showForm ? <><X size={16} /> Cancel</> : <><UserPlus size={16} /> Add Candidate</>}
         </button>
       </div>
 
@@ -184,8 +224,8 @@ export function CandidateBuilder({ showToast }: Props) {
             background: "radial-gradient(circle,rgba(255,107,53,.1) 0%,transparent 70%)",
             pointerEvents: "none",
           }} />
-          <div style={{ fontSize: ".7rem", fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--sf)", marginBottom: "20px" }}>
-            🏛️ New Candidate
+          <div style={{ fontSize: ".7rem", fontWeight: 700, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--sf)", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <LandmarkIcon size={16} /> New Candidate
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "16px" }}
@@ -215,15 +255,52 @@ export function CandidateBuilder({ showToast }: Props) {
             <FormField label="Nomination Date"   value={form.nominationDate} onChange={v => set("nominationDate", v)} type="date" />
             <FormField label="Serial No."        value={form.serialNo}      onChange={v => set("serialNo", v)} type="number" placeholder="1" />
 
-            {/* Symbol picker */}
+            {/* Symbol / Image upload */}
             <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-              <FieldLabel text="Symbol *" />
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <FieldLabel text="Symbol / Photo *" />
+              
+              <div style={{
+                  display: "flex", alignItems: "center", gap: "10px", 
+                  padding: "10px", background: "var(--bg2)", 
+                  border: "1px dashed var(--bdr)", borderRadius: "8px",
+                  position: "relative", overflow: "hidden"
+              }}>
+                 {imagePreview ? (
+                     <div style={{position: "relative", width: "50px", height: "50px", borderRadius: "8px", overflow: "hidden"}}>
+                         <img src={imagePreview} alt="Preview" style={{width: "100%", height: "100%", objectFit: "cover"}} />
+                         <button onClick={() => {setImagePreview(null); setImageFile(null);}} style={{
+                             position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,0.6)", color: "white", 
+                             border: "none", borderRadius: "50%", width: "16px", height: "16px", fontSize: "10px", 
+                             cursor: "pointer", display: "grid", placeItems: "center"
+                         }}>✕</button>
+                     </div>
+                 ) : (
+                     <div style={{ fontSize: "1.8rem", width: "40px", textAlign: "center" }}>
+                        {form.symbol}
+                     </div>
+                 )}
+                 
+                 <div style={{flex: 1}}>
+                     <label style={{
+                         display: "inline-block", padding: "6px 12px", background: "var(--bg3)",
+                         border: "1px solid var(--bdr)", borderRadius: "6px", fontSize: ".75rem",
+                         cursor: "pointer", color: "var(--t2)", transition: "all .2s"
+                     }}>
+                         Upload Photo (.jpg, .png)
+                         <input type="file" accept="image/*" onChange={handleImageChange} style={{display: "none"}} />
+                     </label>
+                     <div style={{fontSize: ".65rem", color: "var(--t3)", marginTop: "4px"}}>
+                         Or pick emoji below:
+                     </div>
+                 </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
                 {EMOJI_SYMBOLS.map(e => (
-                  <button key={e} onClick={() => set("symbol", e)} style={{
-                    width: "36px", height: "36px", borderRadius: "8px",
-                    fontSize: "1.2rem", border: `2px solid ${form.symbol === e ? "var(--sf)" : "var(--bdr)"}`,
-                    background: form.symbol === e ? "rgba(255,107,53,.1)" : "var(--bg2)",
+                  <button key={e} onClick={() => { set("symbol", e); setImagePreview(null); setImageFile(null); }} style={{
+                    width: "32px", height: "32px", borderRadius: "6px",
+                    fontSize: "1.1rem", border: `2px solid ${form.symbol === e && !imagePreview ? "var(--sf)" : "var(--bdr)"}`,
+                    background: form.symbol === e && !imagePreview ? "rgba(255,107,53,.1)" : "var(--bg2)",
                     cursor: "pointer", transition: "all .15s",
                   }}>
                     {e}
@@ -319,9 +396,13 @@ export function CandidateBuilder({ showToast }: Props) {
                     background: `${c.color}22`,
                     border: `2px solid ${c.color}44`,
                     display: "grid", placeItems: "center",
-                    fontSize: "1.6rem", flexShrink: 0,
+                    fontSize: "1.6rem", flexShrink: 0, overflow: "hidden"
                   }}>
-                    {c.symbol}
+                    {(c.symbol && (c.symbol.startsWith('/') || c.symbol.startsWith('http') || c.symbol.startsWith('data:'))) ? (
+                        <img src={c.symbol} alt="symbol" style={{width: "100%", height: "100%", objectFit: "cover"}} />
+                    ) : (
+                        c.symbol
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: ".94rem", color: "var(--t1)" }}>{c.name}</div>
@@ -382,9 +463,10 @@ export function CandidateBuilder({ showToast }: Props) {
                       background: "rgba(239,68,68,.08)", border: "1px solid rgba(239,68,68,.2)",
                       color: "#EF4444", fontSize: ".68rem", fontWeight: 700,
                       cursor: "pointer", opacity: deletingId === c.id ? 0.5 : 1,
+                      display: "inline-flex", alignItems: "center", gap: "4px"
                     }}
                   >
-                    {deletingId === c.id ? "…" : "🗑 Remove"}
+                    {deletingId === c.id ? "…" : <><Trash2 size={12} /> Remove</>}
                   </button>
                 </div>
               </div>

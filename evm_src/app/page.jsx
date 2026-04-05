@@ -4,9 +4,10 @@ import Link from "next/link";
 import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import AshokChakra from "../components/AshokChakra";
+import { Landmark, IdCard, Users, Vote, BarChart3 } from "lucide-react";
 
 
-const POLL_END = new Date("2025-02-23T17:00:00");
+const POLL_END = new Date("April 18, 2026 00:00:00").getTime();
 
 function useCd() {
   const calc = () => {
@@ -78,7 +79,7 @@ function HeroVis() {
         /* Inner glow shines inside the badge */
         boxShadow:"inset 0 0 20px rgba(0,71,171,.07), var(--sh)",
       }}>
-        <div style={{fontSize:"1.4rem",marginBottom:"3px"}}>🏛️</div>
+        <div style={{color:"var(--sf)",marginBottom:"6px"}}><Landmark size={22} /></div>
         <div style={{fontSize:".72rem",fontWeight:700,color:"var(--t1)"}}>Vidyalankar Institute</div>
         <div style={{fontSize:".58rem",color:"var(--t3)",letterSpacing:".07em"}}>Mumbai · Est. 1960</div>
       </div>
@@ -132,7 +133,7 @@ function HowCard({ step, icon, title, desc }) {
         }}/>
       )}
       <div style={{fontSize:".6rem",fontWeight:700,letterSpacing:".22em",color:"var(--t3)",marginBottom:"16px"}}>Step {String(step).padStart(2,"0")}</div>
-      <div style={{fontSize:"2rem",marginBottom:"14px"}}>{icon}</div>
+      <div style={{color:"var(--sf)",marginBottom:"16px"}}>{icon}</div>
       <div style={{fontSize:".95rem",fontWeight:700,color:"var(--t1)",marginBottom:"6px"}}>{title}</div>
       <div style={{fontSize:".8rem",color:"var(--t2)",lineHeight:1.7}}>{desc}</div>
     </div>
@@ -170,7 +171,7 @@ export default function HomePage() {
             }}>
               <div className="bdot"/>
               <span style={{fontSize:".67rem",fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",color:"var(--sf)"}}>
-                Voting Portal Open · 23 Feb 2025
+                Voting Portal Open · 18 April 2026
               </span>
             </div>
 
@@ -196,7 +197,7 @@ export default function HomePage() {
             </p>
 
             <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
-              <Link href="/login" className="btn-p" style={{fontSize:".84rem"}}>🗳️ Cast Your Vote</Link>
+              <Link href="/login" className="btn-p" style={{fontSize:".84rem",display:"inline-flex",alignItems:"center",gap:"8px"}}><Vote size={15} /> Cast Your Vote</Link>
               <Link href="/candidates" className="btn-o" style={{fontSize:".84rem"}}>Meet the Candidates →</Link>
             </div>
 
@@ -234,13 +235,13 @@ export default function HomePage() {
           <div className="eye">How It Works</div>
           <div className="bigt" style={{marginBottom:"44px"}}>Simple. Secure. Democratic.</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"18px"}} className="how-grid">
-            <HowCard step={1} icon="🪪" title="Login with Student ID"
+            <HowCard step={1} icon={<IdCard size={28} />} title="Login with Student ID"
               desc="Enter your Vidyalankar enrollment number. One account per student — enforced automatically."/>
-            <HowCard step={2} icon="👥" title="Review Candidates"
+            <HowCard step={2} icon={<Users size={28} />} title="Review Candidates"
               desc="Read each candidate's full manifesto and agenda before making your informed choice."/>
-            <HowCard step={3} icon="🗳️" title="Cast Your Vote"
+            <HowCard step={3} icon={<Vote size={28} />} title="Cast Your Vote"
               desc="Select your candidate or NOTA. Confirm your choice — it's encrypted, final, and anonymous."/>
-            <HowCard step={4} icon="📊" title="Results"
+            <HowCard step={4} icon={<BarChart3 size={28} />} title="Results"
               desc="Results are sealed until the Admin publishes them. Check the Results page after polling day."/>
           </div>
         </div>
@@ -299,10 +300,10 @@ export default function HomePage() {
             <em style={{fontStyle:"italic",color:"var(--sf)"}}>our campus</em>{" "}future.
           </h2>
           <p style={{fontSize:".88rem",color:"var(--t2)",lineHeight:1.8,marginBottom:"32px",position:"relative"}}>
-            Polling is open today. Login with your Vidyalankar enrollment number and OTP to cast your one encrypted, anonymous vote.
+            Polling is open today. Login with your Election enrollment number and OTP to cast your one encrypted, anonymous vote.
           </p>
           <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap",position:"relative"}}>
-            <Link href="/login" className="btn-p" style={{fontSize:".86rem",padding:"14px 32px"}}>🗳️ Vote Now</Link>
+            <Link href="/login" className="btn-p" style={{fontSize:".86rem",padding:"14px 32px",display:"inline-flex",alignItems:"center",gap:"8px"}}><Vote size={15} /> Vote Now</Link>
             <Link href="/candidates" className="btn-o" style={{fontSize:".86rem",padding:"14px 32px"}}>View All Candidates</Link>
           </div>
         </div>

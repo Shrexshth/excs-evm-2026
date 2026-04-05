@@ -1,8 +1,8 @@
 // src/app/admin/components/OverviewTab.tsx
 // Live election stats, turnout ring, candidate tally bars
 
-"use client";
 import { useState, useEffect, useCallback } from "react";
+import { Vote, Users, Landmark, ShieldAlert, CheckCircle2, BarChart3, Target, Activity, Calendar, XCircle, Play, Pause, Lock } from "lucide-react";
 
 // 👇 FIXED: Removed broken imports and defined Props inline
 interface Props { 
@@ -34,7 +34,7 @@ export function OverviewTab({ showToast }: Props) {
   const [data, setData]       = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const getAuthToken = () => localStorage.getItem("accessToken") || localStorage.getItem("temp_user_id") || "superadmin";
+  const getAuthToken = () => localStorage.getItem("accessToken") || "";
 
   const load = useCallback(async () => {
     try {
@@ -64,7 +64,7 @@ export function OverviewTab({ showToast }: Props) {
       sub:   `${stats.turnoutPct}% turnout`,
       color: "var(--sf)",
       glow:  "rgba(255,107,53,.22)",
-      icon:  "🗳️",
+      icon:  <Vote size={24} />,
     },
     {
       value: stats.totalVoters.toLocaleString(),
@@ -72,7 +72,7 @@ export function OverviewTab({ showToast }: Props) {
       sub:   `${stats.pendingVoters} yet to vote`,
       color: "var(--gr-l)",
       glow:  "rgba(19,136,8,.22)",
-      icon:  "👥",
+      icon:  <Users size={24} />,
     },
     {
       value: stats.total.toString(),
@@ -80,7 +80,7 @@ export function OverviewTab({ showToast }: Props) {
       sub:   `${stats.active} active · ${stats.offline} offline`,
       color: "#64B5F6",
       glow:  "rgba(0,71,171,.22)",
-      icon:  "🏫",
+      icon:  <Landmark size={24} />,
     },
     {
       value: stats.flaggedVoters.toString(),
@@ -88,7 +88,7 @@ export function OverviewTab({ showToast }: Props) {
       sub:   `${stats.todayAlerts} alerts today`,
       color: stats.flaggedVoters > 0 ? "#EF4444" : "var(--gr-l)",
       glow:  stats.flaggedVoters > 0 ? "rgba(239,68,68,.22)" : "rgba(19,136,8,.22)",
-      icon:  stats.flaggedVoters > 0 ? "🚨" : "✅",
+      icon:  stats.flaggedVoters > 0 ? <ShieldAlert size={24} /> : <CheckCircle2 size={24} />,
     },
   ];
 
@@ -127,7 +127,7 @@ export function OverviewTab({ showToast }: Props) {
           background: "var(--bgc)", border: "1px solid var(--bdr)",
           borderRadius: "14px", padding: "28px",
         }}>
-          <SectionHeader icon="📊" title="Live Vote Tally" subtitle="Admin view — not yet public" />
+          <SectionHeader icon={<BarChart3 size={16} />} title="Live Vote Tally" subtitle="Admin view — not yet public" />
           {topCandidates.length === 0 ? (
             <Empty text="No votes cast yet" />
           ) : (
@@ -167,7 +167,7 @@ export function OverviewTab({ showToast }: Props) {
             borderRadius: "14px", padding: "24px",
             display: "flex", flexDirection: "column", alignItems: "center",
           }}>
-            <SectionHeader icon="🎯" title="Voter Turnout" />
+            <SectionHeader icon={<Target size={16} />} title="Voter Turnout" />
             <TurnoutDonut pct={stats.turnoutPct} voted={stats.votedVoters} total={stats.totalVoters} />
           </div>
 
@@ -176,7 +176,7 @@ export function OverviewTab({ showToast }: Props) {
             background: "var(--bgc)", border: "1px solid var(--bdr)",
             borderRadius: "14px", padding: "24px", flex: 1,
           }}>
-            <SectionHeader icon="⚡" title="Recent Activity" />
+            <SectionHeader icon={<Activity size={16} />} title="Recent Activity" />
             <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "0" }}>
               {recentActivity.length === 0 ? (
                  <div style={{ fontSize: ".75rem", color: "var(--t3)", textAlign: "center", padding: "20px 0" }}>System nominal. No recent alerts.</div>
@@ -227,7 +227,7 @@ export function OverviewTab({ showToast }: Props) {
 // ── Reusable sub-components ───────────────────────────────────────────────────
 function StatCard({ value, label, sub, color, glow, icon }: {
   value: string; label: string; sub: string;
-  color: string; glow: string; icon: string;
+  color: string; glow: string; icon: React.ReactNode;
 }) {
   return (
     <div style={{
@@ -286,7 +286,15 @@ function TallyRow({ rank, name, symbol, votes, color, pct, totalVotes, leading, 
       }}>
         {rank}
       </div>
-      <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>{symbol}</span>
+      
+      {(symbol && (symbol.startsWith('/') || symbol.startsWith('http') || symbol.startsWith('data:'))) ? (
+          <div style={{width: "28px", height: "28px", borderRadius: "50%", overflow: "hidden", flexShrink: 0}}>
+              <img src={symbol} alt="symbol" style={{width: "100%", height: "100%", objectFit: "cover"}} />
+          </div>
+      ) : (
+          <span style={{ fontSize: "1.2rem", flexShrink: 0, width: "28px", textAlign: "center" }}>{symbol}</span>
+      )}
+      
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
           <span style={{ fontSize: ".86rem", fontWeight: 600, color: "var(--t1)" }}>{name}</span>
@@ -355,12 +363,12 @@ function TurnoutDonut({ pct, voted, total }: { pct: number; voted: number; total
 }
 
 function ElectionBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; color: string; label: string }> = {
-    ACTIVE:    { bg: "rgba(19,136,8,.1)",     color: "var(--gr-l)", label: "🟢 Active"    },
-    PAUSED:    { bg: "rgba(255,107,53,.1)",   color: "var(--sf)",   label: "⏸️ Paused"    },
-    COMPLETED: { bg: "rgba(0,71,171,.1)",     color: "var(--ck-l)", label: "✅ Completed" },
-    SCHEDULED: { bg: "rgba(200,150,30,.1)",   color: "var(--gold)", label: "📅 Scheduled" },
-    CANCELLED: { bg: "rgba(239,68,68,.1)",    color: "#EF4444",     label: "❌ Cancelled" },
+  const map: Record<string, { bg: string; color: string; label: React.ReactNode }> = {
+    ACTIVE:    { bg: "rgba(19,136,8,.1)",     color: "var(--gr-l)", label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><Play size={10} /> Active</span> },
+    PAUSED:    { bg: "rgba(255,107,53,.1)",   color: "var(--sf)",   label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><Pause size={10} /> Paused</span> },
+    COMPLETED: { bg: "rgba(0,71,171,.1)",     color: "var(--ck-l)", label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><CheckCircle2 size={10} /> Completed</span> },
+    SCHEDULED: { bg: "rgba(200,150,30,.1)",   color: "var(--gold)", label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><Calendar size={10} /> Scheduled</span> },
+    CANCELLED: { bg: "rgba(239,68,68,.1)",    color: "#EF4444",     label: <span style={{display: "flex", alignItems: "center", gap: "6px"}}><XCircle size={10} /> Cancelled</span> },
   };
   const s = map[status] || map.SCHEDULED;
   return (
@@ -374,10 +382,10 @@ function ElectionBadge({ status }: { status: string }) {
   );
 }
 
-function SectionHeader({ icon, title, subtitle }: { icon: string; title: string; subtitle?: string }) {
+function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-      <span>{icon}</span>
+      <span style={{ display: "flex", alignItems: "center" }}>{icon}</span>
       <div>
         <div style={{
           fontSize: ".7rem", fontWeight: 700, letterSpacing: ".16em",

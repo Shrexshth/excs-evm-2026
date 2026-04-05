@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "./ThemeProvider";
 import { AshokChakra } from "./AshokChakra";
+import { Vote, LogOut, Menu, X, Sun, Moon } from "lucide-react";
 
 const LINKS = [
   { href:"/",            label:"Home"       },
@@ -68,10 +69,10 @@ export function Navbar() {
         zIndex:1000, height:"66px",
         display:"flex", alignItems:"center", justifyContent:"space-between",
         padding:"0 40px",
-        background: scrolled ? "rgba(6,8,24,0.96)" : "rgba(6,8,24,0.84)",
+        background: scrolled ? "var(--nav-bg-scrolled)" : "var(--nav-bg)",
         borderBottom:"1px solid var(--bdr)",
         backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)",
-        transition:"background .4s",
+        transition:"background .5s, border-color .5s",
       }}>
         {/* Logo */}
         <Link href="/" style={{display:"flex",alignItems:"center",gap:"12px",textDecoration:"none"}}>
@@ -108,12 +109,15 @@ export function Navbar() {
           <button onClick={toggle} style={{
             width:"36px",height:"36px",borderRadius:"8px",
             border:"1px solid var(--bdr)",background:"var(--bgc)",
-            fontSize:".95rem",color:"var(--t2)",
-            display:"grid",placeItems:"center",transition:"all .2s",cursor:"pointer",
+            color:"var(--t2)",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            transition:"all .2s",cursor:"pointer",
           }}
           onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--sf)";e.currentTarget.style.color="var(--sf)";}}
           onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--bdr)";e.currentTarget.style.color="var(--t2)";}}
-          >{theme==="dark"?"☀️":"🌙"}</button>
+          >
+            {theme==="dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
 
           {/* ── Smart Auth Button (Desktop) ── */}
           <div className="nav-desktop">
@@ -144,20 +148,22 @@ export function Navbar() {
               }}
               onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 0 50px rgba(255,107,53,.62)";}}
               onMouseLeave={e=>{e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="var(--glow-sf)";}}
-              >🗳️ Login to Vote</Link>
+              >
+                <Vote size={14} /> Login to Vote
+              </Link>
             )}
           </div>
 
           <button onClick={()=>setMob(o=>!o)} className="nav-ham"
-            style={{display:"none",background:"none",border:"none",color:"var(--t1)",fontSize:"1.4rem",cursor:"pointer",padding:"4px"}}>
-            {mob?"✕":"☰"}
+            style={{display:"none",background:"none",border:"none",color:"var(--t1)",cursor:"pointer",padding:"4px"}}>
+            {mob ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </nav>
 
       {/* Mobile menu */}
       {mob&&(
-        <div style={{position:"fixed",top:"70px",left:0,right:0,background:"var(--bgc)",borderBottom:"1px solid var(--bdr)",zIndex:999,padding:"12px 18px",display:"flex",flexDirection:"column",gap:"2px"}}>
+        <div style={{position:"fixed",top:"70px",left:0,right:0,background:"var(--bgc)",borderBottom:"1px solid var(--bdr)",zIndex:999,padding:"12px 18px",display:"flex",flexDirection:"column",gap:"2px",transition:"background .5s, border-color .5s"}}>
           {LINKS.map(({href,label})=>(
             <Link key={href} href={href} onClick={()=>setMob(false)} style={{
               padding:"13px 16px",fontSize:".84rem",fontWeight:600,
@@ -170,14 +176,18 @@ export function Navbar() {
              <button onClick={handleLogout} style={{
               marginTop:"8px",padding:"13px 16px", background:"transparent", border: "1px solid var(--sf)",
               color:"var(--sf)",borderRadius:"8px", cursor: "pointer", fontSize:".84rem",fontWeight:700,
-              letterSpacing:".1em",textTransform:"uppercase", textAlign:"center", transition: "all .2s"
-            }}>🚪 Logout ({userName.split(" ")[0]})</button>
+              letterSpacing:".1em",textTransform:"uppercase", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", transition: "all .2s"
+            }}>
+              <LogOut size={16} /> Logout ({userName.split(" ")[0]})
+            </button>
           ) : (
             <Link href="/login" onClick={()=>setMob(false)} style={{
               marginTop:"8px",padding:"13px 16px", background:"linear-gradient(135deg,var(--sf),var(--sf-d))",
               color:"#fff",borderRadius:"8px",textDecoration:"none", fontSize:".84rem",fontWeight:700,
-              letterSpacing:".1em",textTransform:"uppercase", textAlign:"center",
-            }}>🗳️ Login to Vote</Link>
+              letterSpacing:".1em",textTransform:"uppercase", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px",
+            }}>
+              <Vote size={16} /> Login to Vote
+            </Link>
           )}
         </div>
       )}

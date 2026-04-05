@@ -1,5 +1,5 @@
-"use client";
 import { useTheme } from "./ThemeProvider";
+import { Sun, Moon } from "lucide-react";
 
 export function ThemeToggle() {
   const { theme, toggle } = useTheme();
@@ -27,7 +27,9 @@ export function ThemeToggle() {
         color: "var(--fg-muted)",
       }}
     >
-      <span style={{ fontSize: "13px" }}>{theme === "dark" ? "☀️" : "🌙"}</span>
+      <span style={{ display: "flex", alignItems: "center" }}>
+        {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+      </span>
       {theme === "dark" ? "Light" : "Dark"}
     </button>
   );

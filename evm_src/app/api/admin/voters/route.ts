@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 
+import { verifyAdmin } from "@/lib/auth";
+
 // ── GET: Fetch Paginated & Searchable Voter List ────────────────────────────
 export async function GET(req: NextRequest) {
   try {
@@ -30,9 +32,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { firstName, lastName, dob, gender, mobile, email, aadhar, password, adminToken } = body;
 
-    // 🚨 SECURITY: Only Super Admin can manually register voters
-    if (adminToken !== "superadmin") {
-      return NextResponse.json({ success: false, message: "Only Super Admins can manually register voters." }, { status: 403 });
+    // 🚨 SECURITY: Only Super Admin & Admins can manually register voters
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) {
+      return NextResponse.json({ success: false, message: "Only Admins can manually register voters." }, { status: 403 });
     }
 
     // 🛡️ DATA VALIDATION
@@ -54,8 +57,8 @@ export async function POST(req: NextRequest) {
 
     // Generate VIT Voter ID (e.g. VIT25/SC/001/000001)
     const countRes = await sql`SELECT COUNT(*) FROM "User" WHERE role = 'VOTER'`;
-    const seq = String(parseInt(countRes[0].count) + 1).padStart(6, "0");
-    const generatedVoterId = `VIT25/SC/001/${seq}`;
+    const seq = String(parseInt(countRes[0].count) + 1).padStart(5, "0");
+    const generatedVoterId = `VIT25/SC/${seq}`;
 
     const passwordHash = await bcrypt.hash(password, 10);
     const fullName = `${firstName} ${lastName}`.trim();
@@ -65,15 +68,19 @@ export async function POST(req: NextRequest) {
       INSERT INTO "User" (
         name, "enrollmentNumber", username, password, email, mobile, dob, gender, aadhar, role, "isVerified", status, "isActive"
       ) VALUES (
-        ${fullName}, ${generatedVoterId}, ${generatedVoterId}, ${passwordHash}, ${email || null}, ${mobile}, ${new Date(dob)}, ${gender}, ${aadhar}, 'VOTER', false, 'ACTIVE', true
+        ${fullName}, ${generatedVoterId}, ${generatedVoterId}, ${passwordHash}, ${email || null}, ${mobile}, ${dob}, ${gender}, ${aadhar}, 'VOTER', false, 'ACTIVE', true
       )
     `;
 
     return NextResponse.json({ success: true, voterId: generatedVoterId });
   } catch (err: any) {
-    console.error("POST Voter Error:", err);
-    const isUnique = err.message?.toLowerCase().includes("unique");
-    return NextResponse.json({ success: false, message: isUnique ? "Duplicate entry found (Aadhar/Email might already exist)." : "Internal server error." }, { status: 500 });
+    console.error("🔥 POST Voter DB Error Stringified:", JSON.stringify(err));
+    console.error("🔥 POST Voter Details:", err);
+    if (err.message) {
+        const isUnique = err.message.toLowerCase().includes("unique");
+        return NextResponse.json({ success: false, message: isUnique ? "Duplicate entry found (Aadhar/Email already exists)." : `DB Error: ${err.message}` }, { status: 500 });
+    }
+    return NextResponse.json({ success: false, message: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -83,8 +90,10 @@ export async function DELETE(req: NextRequest) {
     const voterId = req.nextUrl.searchParams.get("id");
     const adminToken = req.headers.get("x-admin-token");
 
-    if (adminToken !== "superadmin") {
-      return NextResponse.json({ success: false, message: "Only Super Admins can remove voters." }, { status: 403 });
+    // Only Super Admin & Admins can remove voters
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) {
+      return NextResponse.json({ success: false, message: "Only Admins can remove voters." }, { status: 403 });
     }
 
     const voterRes = await sql`SELECT "isVerified" FROM "User" WHERE "enrollmentNumber" = ${voterId}`;

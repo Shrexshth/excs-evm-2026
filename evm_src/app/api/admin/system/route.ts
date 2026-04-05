@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+import { verifyAdmin } from '@/lib/auth';
+
 export async function GET() {
   try {
     const status = await sql`SELECT election_status FROM "SystemSettings" LIMIT 1`;
@@ -15,7 +17,8 @@ export async function POST(req: Request) {
     const { action, adminToken } = await req.json();
 
     // 🛡️ STRICT ROLE CHECK: Only the Super Admin can flip this switch
-    if (adminToken !== 'superadmin') {
+    const auth = await verifyAdmin(adminToken);
+    if (!auth || auth.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: "UNAUTHORIZED: Only Super Admin can change election phases." }, { status: 403 });
     }
 

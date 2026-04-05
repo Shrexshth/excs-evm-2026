@@ -1,6 +1,6 @@
 // src/app/admin/components/VoterRegistry.tsx
-"use client";
 import { useState, useEffect, useCallback } from "react";
+import { X, Plus, RefreshCw, UserPlus } from "lucide-react";
 
 interface Props { 
   showToast: (m: string, t?: "success" | "error" | "warn" | "info" | string) => void; 
@@ -28,8 +28,8 @@ const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }
   REGISTERED: { bg: "rgba(0,71,171,.1)",   color: "var(--ck-l)", label: "Registered" },
   ACTIVE:     { bg: "rgba(0,71,171,.1)",   color: "var(--ck-l)", label: "Active" },
   VERIFIED:   { bg: "rgba(19,136,8,.1)",   color: "var(--gr-l)", label: "Verified"   },
-  VOTED:      { bg: "rgba(19,136,8,.14)",  color: "var(--gr-l)", label: "✅ Voted"   },
-  FLAGGED:    { bg: "rgba(239,68,68,.1)",  color: "#EF4444",     label: "🚨 Flagged"  },
+  VOTED:      { bg: "rgba(19,136,8,.14)",  color: "var(--gr-l)", label: "Voted"      },
+  FLAGGED:    { bg: "rgba(239,68,68,.1)",  color: "#EF4444",     label: "Flagged"    },
   SUSPENDED:  { bg: "rgba(100,100,100,.1)",color: "var(--t3)",   label: "Suspended"  },
 };
 
@@ -70,7 +70,7 @@ export function VoterRegistry({ showToast }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [flaggingId, setFlaggingId] = useState<string | null>(null);
 
-  const getAuthToken = () => localStorage.getItem("accessToken") || localStorage.getItem("temp_user_id") || "superadmin";
+  const getAuthToken = () => localStorage.getItem("accessToken") || "";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -143,7 +143,7 @@ export function VoterRegistry({ showToast }: Props) {
             letterSpacing: ".08em", cursor: "pointer", transition: "all .2s",
           }}
         >
-          {showForm ? "✕ Cancel" : "＋ Add Voter"}
+          {showForm ? <><X size={16} /> Cancel</> : <><UserPlus size={16} /> Add Voter</>}
         </button>
       </div>
 
@@ -195,9 +195,10 @@ export function VoterRegistry({ showToast }: Props) {
               padding: "8px 16px", background: "var(--bg2)",
               border: "1px solid var(--bdr)", borderRadius: "8px",
               color: "var(--t2)", fontSize: ".8rem", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: "6px"
             }}
           >
-            ↻ Refresh
+            <RefreshCw size={14} /> Refresh
           </button>
         </div>
 
@@ -334,7 +335,7 @@ function AddVoterForm({ onSuccess, showToast }: {
   const [saving, setSaving] = useState(false);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
-  const getAuthToken = () => localStorage.getItem("accessToken") || localStorage.getItem("temp_user_id") || "superadmin";
+  const getAuthToken = () => localStorage.getItem("accessToken") || "";
 
   const submit = async () => {
     if (!form.firstName || !form.lastName || !form.dob || !form.mobile || !form.aadhar || !form.password) {
@@ -376,8 +377,9 @@ function AddVoterForm({ onSuccess, showToast }: {
       <div style={{
         fontSize: ".7rem", fontWeight: 700, letterSpacing: ".16em",
         textTransform: "uppercase", color: "var(--ck-l)", marginBottom: "18px",
+        display: "flex", alignItems: "center", gap: "8px"
       }}>
-        ＋ Manually Add Student Voter
+        <UserPlus size={16} /> Manually Add Student Voter
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "16px" }}

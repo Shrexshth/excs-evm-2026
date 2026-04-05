@@ -4,13 +4,17 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { OverviewTab }        from "./components/OverviewTab";
-import { VoterRegistry }      from "./components/VoterRegistry";
-import { CandidateBuilder }   from "./components/CandidateBuilder";
-import { SystemControl }      from "./components/SystemControl";
+import { OverviewTab } from "./components/OverviewTab";
+import { VoterRegistry } from "./components/VoterRegistry";
+import { CandidateBuilder } from "./components/CandidateBuilder";
+import { SystemControl } from "./components/SystemControl";
+// Import your new QR Manager component (forces IDE to re-evaluate)
+import { QRManager } from "@/app/admin/components/QRManager";
+import { LayoutDashboard, Users as UsersIcon, Landmark, Settings, LogOut, Vote, QrCode } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-export type TabId = "overview" | "voters" | "candidates" | "system";
+// Added "qr" to TabId
+export type TabId = "overview" | "voters" | "candidates" | "system" | "qr";
 
 export interface AdminUser {
   id: number;
@@ -20,18 +24,18 @@ export interface AdminUser {
 
 interface NavItem {
   id: TabId;
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   badge?: string;
   superAdminOnly?: boolean;
 }
 
 const NAV: NavItem[] = [
-  { id: "overview",    icon: "📊", label: "Overview"          },
-  { id: "voters",      icon: "👥", label: "Voter Registry"    },
-  { id: "candidates",  icon: "🏛️", label: "Candidates"        },
-  { id: "system",      icon: "⚙️", label: "System Control",   superAdminOnly: true },
-  // Audit Logs skipped to preserve DB space
+  { id: "overview", icon: <LayoutDashboard size={20} />, label: "Overview" },
+  { id: "voters", icon: <UsersIcon size={20} />, label: "Voter Registry" },
+  { id: "candidates", icon: <Landmark size={20} />, label: "Candidates" },
+  { id: "qr", icon: <QrCode size={20} />, label: "QR Generator" }, // New Tab Added Here
+  { id: "system", icon: <Settings size={20} />, label: "System Control" },
 ];
 
 // ── Shared toast context exposed to child tabs ─────────────────────────────────
@@ -40,25 +44,23 @@ export interface Toast { msg: string; type: ToastType; }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  const router  = useRouter();
-  const [tab, setTab]       = useState<TabId>("overview");
-  const [user, setUser]     = useState<AdminUser | null>(null);
-  const [toast, setToast]   = useState<Toast | null>(null);
+  const router = useRouter();
+  const [tab, setTab] = useState<TabId>("overview");
+  const [user, setUser] = useState<AdminUser | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Check our standard token storage
-    const token = localStorage.getItem("accessToken") || localStorage.getItem("temp_user_id");
-    
-    if (!token || token.startsWith("VIT-")) {
-      // If no token, or if it's a student (starts with VIT-), kick them out
+    const token = localStorage.getItem("accessToken");
+    const role = localStorage.getItem("userRole");
+    const name = localStorage.getItem("userName") || "Admin";
+
+    if (!token || !role || (role !== "ADMIN" && role !== "SUPER_ADMIN")) {
       router.push("/login");
       return;
     }
-    
-    // Determine role (for our raw SQL build, 'superadmin' is the main key)
-    const role = token === "superadmin" ? "SUPERADMIN" : "ADMIN";
-    setUser({ id: 0, username: token.toUpperCase(), role: role });
+
+    setUser({ id: 0, username: name, role: role as any });
 
   }, [router]);
 
@@ -68,18 +70,17 @@ export default function AdminPage() {
   }, []);
 
   const logout = () => {
-    ["accessToken","userRole","username", "temp_user_id"].forEach((k) => localStorage.removeItem(k));
+    ["accessToken", "userRole", "username", "temp_user_id"].forEach((k) => localStorage.removeItem(k));
     router.push("/login");
   };
 
   const toastColors: Record<string, { border: string; icon: string }> = {
-    success: { border: "var(--gr-l)",  icon: "✅" },
-    error:   { border: "#EF4444",      icon: "❌" },
-    warn:    { border: "var(--sf)",    icon: "⚠️" },
-    info:    { border: "var(--ck-l)",  icon: "ℹ️" },
+    success: { border: "var(--gr-l)", icon: "✅" },
+    error: { border: "#EF4444", icon: "❌" },
+    warn: { border: "var(--sf)", icon: "⚠️" },
+    info: { border: "var(--ck-l)", icon: "ℹ️" },
   };
 
-  // Safe fallback for custom toast types
   const getToastStyle = (type: string) => toastColors[type] || toastColors.info;
 
   const tabProps = { user, showToast };
@@ -88,7 +89,7 @@ export default function AdminPage() {
     <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "var(--font-b)" }}>
       {/* Tricolor strip */}
       <div className="tristrip">
-        <div className="ts-s"/><div className="ts-s"/><div className="ts-s"/>
+        <div className="ts-s" /><div className="ts-s" /><div className="ts-s" />
       </div>
 
       <div style={{ display: "flex", paddingTop: "4px", minHeight: "100vh" }}>
@@ -114,11 +115,13 @@ export default function AdminPage() {
               width: "140px", height: "140px", borderRadius: "50%",
               background: "radial-gradient(circle,rgba(0,71,171,.16) 0%,transparent 70%)",
               pointerEvents: "none",
-            }}/>
+            }} />
             <div style={{
               display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px",
             }}>
-              <span style={{ fontSize: "1.5rem" }}>🗳️</span>
+              <span style={{ display: "flex", color: "var(--sf)" }}>
+                <Vote size={26} />
+              </span>
               <div>
                 <div style={{
                   fontFamily: "var(--font-s)", fontSize: "1rem", fontWeight: 600,
@@ -127,7 +130,7 @@ export default function AdminPage() {
                 <div style={{
                   fontSize: ".58rem", fontWeight: 700, letterSpacing: ".2em",
                   textTransform: "uppercase", color: "var(--ck-l)", marginTop: "2px",
-                }}>Vidyalankar · 2025</div>
+                }}>Vidyalankar · 2026</div> {/* Updated to 2026 for your current year */}
               </div>
             </div>
             {user && (
@@ -168,7 +171,7 @@ export default function AdminPage() {
             }}>
               Dashboard
             </div>
-            {NAV.filter(n => !n.superAdminOnly || user?.role === "SUPERADMIN").map((item) => (
+            {NAV.map((item) => (
               <SidebarItem
                 key={item.id}
                 item={item}
@@ -193,7 +196,7 @@ export default function AdminPage() {
                 width: "100%", padding: "10px 24px",
                 fontSize: ".84rem", fontWeight: 600, color: "var(--t2)",
                 background: "transparent", border: "none", cursor: "pointer",
-                transition: "all .2s", textAlign: "left",
+                transition: "all .2s", textAlign: "left", zIndex: 10, position: "relative",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "#EF4444";
@@ -204,7 +207,9 @@ export default function AdminPage() {
                 e.currentTarget.style.background = "transparent";
               }}
             >
-              <span style={{ fontSize: "1rem", width: "22px", textAlign: "center" }}>🚪</span>
+              <span style={{ width: "22px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <LogOut size={18} />
+              </span>
               Logout
             </button>
           </div>
@@ -244,10 +249,11 @@ export default function AdminPage() {
 
           {/* Tab content */}
           <div style={{ padding: "36px 40px" }} className="admin-main-content">
-            {tab === "overview"   && <OverviewTab      {...tabProps} />}
-            {tab === "voters"     && <VoterRegistry    {...tabProps} />}
+            {tab === "overview" && <OverviewTab      {...tabProps} />}
+            {tab === "voters" && <VoterRegistry    {...tabProps} />}
             {tab === "candidates" && <CandidateBuilder {...tabProps} />}
-            {tab === "system"     && <SystemControl    {...tabProps} />}
+            {tab === "qr" && <QRManager        {...tabProps} />} {/* Router for new tab */}
+            {tab === "system" && <SystemControl    {...tabProps} />}
           </div>
         </main>
       </div>
@@ -322,7 +328,7 @@ function SidebarItem({
         }
       }}
     >
-      <span style={{ fontSize: "1rem", width: "20px", textAlign: "center", flexShrink: 0 }}>
+      <span style={{ width: "20px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         {item.icon}
       </span>
       <span style={{ flex: 1 }}>{item.label}</span>

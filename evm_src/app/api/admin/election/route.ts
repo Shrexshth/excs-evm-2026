@@ -2,12 +2,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { logAction } from "@/lib/logger";
+import { verifyAdmin } from "@/lib/auth";
 
 // ── GET: Fetch Current System Settings ──────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
     const adminToken = req.headers.get("x-admin-token");
-    if (!adminToken || adminToken.startsWith('VIT-')) {
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) {
       return NextResponse.json({ success: false, message: "Unauthorized access." }, { status: 403 });
     }
 
@@ -33,9 +35,10 @@ export async function PATCH(req: NextRequest) {
   try {
     const adminToken = req.headers.get("x-admin-token");
     
-    // 🛡️ Strict Super Admin Check for God Mode Actions
-    if (adminToken !== "superadmin") {
-      return NextResponse.json({ success: false, message: "Only Super Admins can alter election states." }, { status: 403 });
+    // 🛡️ Strict Admin Check for God Mode Actions
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) {
+      return NextResponse.json({ success: false, message: "Only Admins can alter election states." }, { status: 403 });
     }
 
     const body = await req.json();

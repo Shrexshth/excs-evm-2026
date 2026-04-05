@@ -14,25 +14,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Missing credentials." }, { status: 400 });
     }
 
-    // 👑 2. CHECK .ENV CREDENTIALS FOR SUPER ADMIN
-    if (identifier === 'superadmin') {
-      // It checks your .env file first, with a fallback just in case
-      if (password === process.env.SUPERADMIN_PASS || password === 'superadmin69') {
-        return NextResponse.json({ 
-          success: true, 
-          accessToken: "vip-admin-token", 
-          user: {
-            id: "superadmin",
-            role: "SUPER_ADMIN",
-            name: "Commander"
-          }
-        });
-      } else {
-        return NextResponse.json({ success: false, message: "Invalid Super Admin password." }, { status: 401 });
-      }
-    }
-
-    // 🎓 3. CHECK DATABASE FOR STUDENTS
+    // 🎓 CHECK DATABASE FOR ALL USERS (Students, Dept Admins, Super Admin)
     const users = await sql`
       SELECT id, username, "enrollmentNumber", password, role, name 
       FROM "User" 
@@ -41,7 +23,7 @@ export async function POST(req: Request) {
     `;
     
     if (users.length === 0) {
-      return NextResponse.json({ success: false, message: "Student ID not found in registry." }, { status: 404 });
+      return NextResponse.json({ success: false, message: "Identifier not found in registry." }, { status: 404 });
     }
 
     const user = users[0];
@@ -51,10 +33,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Incorrect password." }, { status: 401 });
     }
 
-    // Success for Student
+    // Generate a secure UUID for the session token
+    const token = crypto.randomUUID();
+
+    // Update the user's secure token in the Database so the backend can verify it later
+    await sql`
+      UPDATE "User" 
+      SET "authToken" = ${token}
+      WHERE id = ${user.id}
+    `;
+
     return NextResponse.json({ 
       success: true, 
-      accessToken: "student-auth-token",
+      accessToken: token,
       user: {
         id: user.username || user.enrollmentNumber,
         role: user.role,

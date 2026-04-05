@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { AshokChakra } from "@/components/AshokChakra";
+import { Lock, Trophy, TrendingUp, ClipboardList, Hourglass } from "lucide-react";
 
 // ── UI Components ─────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ function LockedState() {
         }}/>
 
         {/* Lock icon */}
-        <div style={{fontSize:"4rem",position:"relative",zIndex:2,filter:"drop-shadow(0 0 20px rgba(255,107,53,.35))"}}>🔒</div>
+        <div style={{position:"relative",zIndex:2,filter:"drop-shadow(0 0 20px rgba(255,107,53,.35))", color: "var(--sf)"}}><Lock size={64}/></div>
       </div>
 
       <div className="eye" style={{textAlign:"center"}}>Results Status</div>
@@ -54,7 +55,7 @@ function LockedState() {
         boxShadow:"inset 0 0 20px rgba(255,107,53,.07)",
         fontSize:".78rem",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"var(--sf)",
       }}>
-        🔒 Sealed by Election Committee
+        <Lock size={12} /> Sealed by Election Committee
       </div>
       <p style={{fontSize:".76rem",color:"var(--t3)",marginTop:"24px"}}>
         Check back after polling closes · Admin publishes results at the scheduled time
@@ -69,7 +70,7 @@ function RevealedState({ publishedAt, results, totalVotes, status }: { published
 
   // 1. Process Live Data
   const sortedCandidates = [...results].sort((a, b) => b.votes - a.votes);
-  const winner = sortedCandidates[0] || { name: "Pending", votes: 0, pct: 0, icon: "⏳", meta: "" };
+  const winner = sortedCandidates[0] || { name: "Pending", votes: 0, pct: 0, icon: <Hourglass size={64}/>, meta: "" };
   const isElectionOver = status === "COMPLETED";
 
   // Pre-calculated stats row
@@ -118,10 +119,20 @@ function RevealedState({ publishedAt, results, totalVotes, status }: { published
         <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 0%,rgba(200,150,30,.1),transparent 55%)",pointerEvents:"none",animation:"placeGlow 4s ease-in-out infinite"}}/>
         <div style={{position:"absolute",top:"-60px",right:"-60px",width:"200px",height:"200px",borderRadius:"50%",background:"radial-gradient(circle,rgba(200,150,30,.14) 0%,transparent 70%)",pointerEvents:"none"}}/>
 
-        <div style={{fontSize:".7rem",fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:"var(--gold)",marginBottom:"18px",position:"relative"}}>
-          {isElectionOver ? "🏆 Student Council President 2025 — Winner" : "🔥 CURRENT LEADER"}
+        <div style={{position:"absolute",top:"-60px",right:"-60px",width:"200px",height:"200px",borderRadius:"50%",background:"radial-gradient(circle,rgba(200,150,30,.14) 0%,transparent 70%)",pointerEvents:"none"}}/>
+
+        <div style={{fontSize:".7rem",fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:"var(--gold)",marginBottom:"18px",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}>
+          {isElectionOver ? <><Trophy size={16}/> Student Council President 2025 — Winner</> : <><TrendingUp size={16}/> CURRENT LEADER</>}
         </div>
-        <div style={{fontSize:"4rem",marginBottom:"14px",display:"block",position:"relative"}}>{winner.symbol || winner.icon}</div>
+        <div style={{marginBottom:"14px",display:"flex",justifyContent:"center",position:"relative"}}>
+          {(winner.symbol && (winner.symbol.startsWith('/') || winner.symbol.startsWith('http') || winner.symbol.startsWith('data:'))) ? (
+              <div style={{width:"80px",height:"80px",borderRadius:"50%",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg2)",border:"2px solid var(--gold)"}}>
+                <img src={winner.symbol} alt="symbol" style={{width:"100%", height:"100%", objectFit:"cover"}} />
+              </div>
+          ) : (
+             <span style={{fontSize:"4rem"}}>{winner.symbol || winner.icon}</span>
+          )}
+        </div>
         <div style={{fontFamily:"var(--font-s)",fontSize:"2.8rem",fontWeight:400,color:"var(--t1)",marginBottom:"6px",position:"relative"}}>{winner.name}</div>
         <div style={{fontSize:".84rem",color:"var(--t3)",letterSpacing:".06em",marginBottom:"20px",position:"relative"}}>{winner.party || "Candidate"}</div>
         <div style={{fontFamily:"var(--font-s)",fontSize:"1.6rem",color:"var(--gold)",position:"relative",textShadow:"0 0 20px rgba(200,150,30,.4)"}}>
@@ -142,8 +153,8 @@ function RevealedState({ publishedAt, results, totalVotes, status }: { published
 
       {/* Results table */}
       <div style={{background:"var(--bgc)",border:"1px solid var(--bdr)",borderRadius:"12px",overflow:"hidden"}}>
-        <div style={{padding:"14px 24px",borderBottom:"1px solid var(--bdr)",fontSize:".68rem",fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",color:"var(--t3)"}}>
-          📋 Live Vote Tally — Student Council President
+        <div style={{padding:"14px 24px",borderBottom:"1px solid var(--bdr)",fontSize:".68rem",fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",color:"var(--t3)",display:"flex",alignItems:"center",gap:"8px"}}>
+          <ClipboardList size={14}/> Live Vote Tally — Student Council President
         </div>
         
         {sortedCandidates.map((r, i) => {
@@ -179,7 +190,7 @@ function RevealedState({ publishedAt, results, totalVotes, status }: { published
                   {r.name}
                   {isWinner && (
                     <span style={{display:"inline-flex",alignItems:"center",gap:"4px",padding:"2px 8px",borderRadius:"100px",fontSize:".6rem",fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",background:"rgba(200,150,30,.12)",color:"var(--gold)",border:"1px solid rgba(200,150,30,.25)",marginLeft:"8px"}}>
-                      🏆 Winner
+                      <Trophy size={10}/> Winner
                     </span>
                   )}
                 </div>

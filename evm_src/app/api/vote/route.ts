@@ -4,73 +4,74 @@ import { logAction } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
-    // 🛑 1. PHASE CONTROL: Check if the election is actually running!
+    // 1. PHASE CONTROL: Check System Settings
     const systemCheck = await sql`SELECT election_status FROM "SystemSettings" LIMIT 1`;
     const currentStatus = systemCheck[0]?.election_status || 'PAUSED';
 
-    if (currentStatus === 'PAUSED') {
-      return NextResponse.json({ success: false, message: "Voting is currently PAUSED by the Election Commission." }, { status: 403 });
-    }
-    if (currentStatus === 'COMPLETED') {
-      return NextResponse.json({ success: false, message: "This election has CONCLUDED. Voting is permanently closed." }, { status: 403 });
+    if (currentStatus !== 'LIVE') {
+      return NextResponse.json({
+        success: false,
+        message: `Voting is currently ${currentStatus}.`
+      }, { status: 403 });
     }
 
-    // 2. Parse the incoming vote data (FLEXIBLE CATCH)
+    // 2. Parse incoming data
     const body = await req.json();
-    
-    // This catches the ID no matter what your frontend named it
     const incomingVoterId = body.voterId || body.userId || body.id || body.enrollmentNumber;
-    const candidateId = body.candidateId !== undefined ? body.candidateId : body.candidate;
 
-    if (!incomingVoterId || candidateId === undefined) {
-      return NextResponse.json({ success: false, message: "Missing vote data. Please try again." }, { status: 400 });
+    // Handle NOTA (candidateId = null) or a specific ID
+    const candidateId = body.candidateId !== undefined ? body.candidateId : null;
+
+    if (!incomingVoterId) {
+      return NextResponse.json({ success: false, message: "Missing Voter ID." }, { status: 400 });
     }
 
-    // 3. Find the user in the database to get their actual internal UUID
-    const checkUser = await sql`
-      SELECT id, "isVerified" 
-      FROM "User" 
-      WHERE "enrollmentNumber" = ${incomingVoterId} 
-         OR username = ${incomingVoterId} 
-         OR id::text = ${incomingVoterId}
-      LIMIT 1
-    `;
-
-    if (checkUser.length === 0) {
-      return NextResponse.json({ success: false, message: "Student record not found." }, { status: 404 });
-    }
-
-    if (checkUser[0].isVerified === true) {
-      return NextResponse.json({ success: false, message: "You have already cast your vote." }, { status: 403 });
-    }
-
-    const internalUserUUID = checkUser[0].id; // The safe UUID required by the database
-
-    // 4. Insert the Vote safely
-    await sql`
+    // 3. THE ATOMIC TRANSACTION
+    // This CTE handles everything in one go:
+    // a) Finds the user and updates isVerified only if it was false.
+    // b) Inserts the vote only if the user update succeeded.
+    const result = await sql`
+      WITH updated_user AS (
+        UPDATE "User"
+        SET "isVerified" = true
+        WHERE ("enrollmentNumber" = ${incomingVoterId} OR username = ${incomingVoterId} OR id::text = ${incomingVoterId})
+          AND "isVerified" = false
+        RETURNING id
+      )
       INSERT INTO "Vote" ("voterId", "candidateId")
-      VALUES (${internalUserUUID}, ${candidateId})
+      SELECT id, ${candidateId}
+      FROM updated_user
+      RETURNING id;
     `;
 
-    // 5. Mark the student as 'Voted'
-    await sql`
-      UPDATE "User" 
-      SET "isVerified" = true 
-      WHERE id = ${internalUserUUID}
-    `;
+    // 4. Verify Success
+    // If result is empty, it means the WHERE clause failed (User already voted or ID wrong)
+    if (result.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: "Vote failed: Student not found or you have already cast your vote."
+      }, { status: 403 });
+    }
 
-    // 6. Create a forensic log
+    // 5. Create Forensic Log
     await logAction({
       action: 'VOTE_CAST',
       endpoint: '/api/vote',
       userRole: 'VOTER',
-      details: { voterId: incomingVoterId } 
+      details: { voterId: incomingVoterId }
     });
 
-    return NextResponse.json({ success: true, message: "Vote successfully recorded!" });
+    return NextResponse.json({
+      success: true,
+      message: "Vote successfully recorded!",
+      receiptId: Math.floor(Math.random() * 900000 + 100000)
+    });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("🚨 Voting API Crash:", error);
-    return NextResponse.json({ success: false, message: "Server error processing your vote." }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      message: `Server error: ${error.message}`
+    }, { status: 500 });
   }
 }

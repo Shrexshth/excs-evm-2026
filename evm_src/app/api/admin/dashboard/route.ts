@@ -1,12 +1,17 @@
 // src/app/api/admin/dashboard/route.ts
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { verifyAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    // 🛡️ Note: In production, verify the adminToken from headers here
+    const adminToken = req.headers.get("x-admin-token");
+    const auth = await verifyAdmin(adminToken);
+    if (!auth) {
+      return NextResponse.json({ success: false, message: "Unauthorized dashboard access." }, { status: 403 });
+    }
 
     // 1. Get Election Status
     const sysRes = await sql`SELECT election_status FROM "SystemSettings" LIMIT 1`;
