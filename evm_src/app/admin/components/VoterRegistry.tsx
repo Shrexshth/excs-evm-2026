@@ -1,9 +1,9 @@
 // src/app/admin/components/VoterRegistry.tsx
 import { useState, useEffect, useCallback } from "react";
-import { X, Plus, RefreshCw, UserPlus } from "lucide-react";
+import { X, Plus, RefreshCw, UserPlus, Printer } from "lucide-react";
 
-interface Props { 
-  showToast: (m: string, t?: "success" | "error" | "warn" | "info" | string) => void; 
+interface Props {
+  showToast: (m: string, t?: "success" | "error" | "warn" | "info" | string) => void;
 }
 
 interface Voter {
@@ -25,12 +25,12 @@ interface Voter {
 interface VoterMeta { total: number; voted: number; flagged: number; page: number; pages: number; }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
-  REGISTERED: { bg: "rgba(0,71,171,.1)",   color: "var(--ck-l)", label: "Registered" },
-  ACTIVE:     { bg: "rgba(0,71,171,.1)",   color: "var(--ck-l)", label: "Active" },
-  VERIFIED:   { bg: "rgba(19,136,8,.1)",   color: "var(--gr-l)", label: "Verified"   },
-  VOTED:      { bg: "rgba(19,136,8,.14)",  color: "var(--gr-l)", label: "Voted"      },
-  FLAGGED:    { bg: "rgba(239,68,68,.1)",  color: "#EF4444",     label: "Flagged"    },
-  SUSPENDED:  { bg: "rgba(100,100,100,.1)",color: "var(--t3)",   label: "Suspended"  },
+  REGISTERED: { bg: "rgba(0,71,171,.1)", color: "var(--ck-l)", label: "Registered" },
+  ACTIVE: { bg: "rgba(0,71,171,.1)", color: "var(--ck-l)", label: "Active" },
+  VERIFIED: { bg: "rgba(19,136,8,.1)", color: "var(--gr-l)", label: "Verified" },
+  VOTED: { bg: "rgba(19,136,8,.14)", color: "var(--gr-l)", label: "Voted" },
+  FLAGGED: { bg: "rgba(239,68,68,.1)", color: "#EF4444", label: "Flagged" },
+  SUSPENDED: { bg: "rgba(100,100,100,.1)", color: "var(--t3)", label: "Suspended" },
 };
 
 // 🚨 FIX 1: FormInput moved to the very top, OUTSIDE of all other components.
@@ -61,14 +61,18 @@ function FormInput({ label, value, onChange, type = "text", placeholder = "", re
 }
 
 export function VoterRegistry({ showToast }: Props) {
-  const [voters, setVoters]     = useState<Voter[]>([]);
-  const [meta, setMeta]         = useState<VoterMeta | null>(null);
-  const [search, setSearch]     = useState("");
+  const [voters, setVoters] = useState<Voter[]>([]);
+  const [meta, setMeta] = useState<VoterMeta | null>(null);
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [page, setPage]         = useState(1);
-  const [loading, setLoading]   = useState(true);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [flaggingId, setFlaggingId] = useState<string | null>(null);
+
+  // Print Roster States
+  const [rosterData, setRosterData] = useState<Voter[] | null>(null);
+  const [printing, setPrinting] = useState(false);
 
   const getAuthToken = () => localStorage.getItem("accessToken") || "";
 
@@ -79,7 +83,7 @@ export function VoterRegistry({ showToast }: Props) {
       const params = new URLSearchParams({
         page: String(page),
         limit: "15",
-        ...(search       && { search }),
+        ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
       });
       const r = await fetch(`/api/admin/voters?${params}`, {
@@ -118,206 +122,334 @@ export function VoterRegistry({ showToast }: Props) {
     finally { setFlaggingId(null); }
   };
 
+  // FETCH ALL STUDENTS FOR THE PRINT VIEW
+  const fetchAndPrintRoster = async () => {
+    setPrinting(true);
+    showToast("Compiling security roster...", "info");
+    try {
+      const token = getAuthToken();
+      // Fetch up to 5000 students for the printout
+      const r = await fetch(`/api/admin/voters?limit=5000`, {
+        headers: { "x-admin-token": token },
+      });
+      const j = await r.json();
+      if (j.success) {
+        setRosterData(j.voters);
+        // Wait for React to render the hidden table, then trigger print dialogue
+        setTimeout(() => {
+          window.print();
+          setRosterData(null); // Cleanup after printing is done/cancelled
+          setPrinting(false);
+        }, 800);
+      } else {
+        showToast("Failed to load roster data.", "error");
+        setPrinting(false);
+      }
+    } catch {
+      showToast("Network error while generating roster.", "error");
+      setPrinting(false);
+    }
+  };
+
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
-        <div>
-          <div style={{ fontFamily: "var(--font-s)", fontSize: "2rem", fontWeight: 400, color: "var(--t1)", marginBottom: "4px" }}>
-            Voter Registry
-          </div>
-          <div style={{ fontSize: ".82rem", color: "var(--t3)" }}>
-            {meta ? `${meta.total.toLocaleString()} students enrolled · ${meta.voted} voted · ${meta.flagged} flagged` : "Loading…"}
-          </div>
-        </div>
-        <button
-          onClick={() => setShowForm(v => !v)}
-          style={{
-            display: "flex", alignItems: "center", gap: "8px",
-            padding: "10px 20px",
-            background: showForm
-              ? "var(--bg2)"
-              : "linear-gradient(135deg,var(--ck),var(--ck-l))",
-            color: showForm ? "var(--t2)" : "#fff",
-            border: `1px solid ${showForm ? "var(--bdr)" : "transparent"}`,
-            borderRadius: "9px", fontSize: ".8rem", fontWeight: 700,
-            letterSpacing: ".08em", cursor: "pointer", transition: "all .2s",
-          }}
-        >
-          {showForm ? <><X size={16} /> Cancel</> : <><UserPlus size={16} /> Add Voter</>}
-        </button>
-      </div>
-
-      {showForm && (
-        <AddVoterForm
-          onSuccess={() => { setShowForm(false); load(); }}
-          showToast={showToast}
-        />
-      )}
-
-      <div style={{
-        background: "var(--bgc)", border: "1px solid var(--bdr)",
-        borderRadius: "12px", overflow: "hidden",
-      }}>
-        <div style={{
-          padding: "14px 20px", borderBottom: "1px solid var(--bdr)",
-          display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap",
-        }}>
-          <input
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search name, ID, or mobile…"
-            style={{
-              padding: "8px 14px", background: "var(--bg2)",
-              border: "1px solid var(--bdr)", borderRadius: "8px",
-              color: "var(--t1)", fontSize: ".82rem", flex: 1, minWidth: "180px",
-              transition: "border .2s",
-            }}
-            onFocus={e => e.target.style.borderColor = "var(--ck)"}
-            onBlur={e => e.target.style.borderColor = "var(--bdr)"}
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: "8px 14px", background: "var(--bg2)",
-              border: "1px solid var(--bdr)", borderRadius: "8px",
-              color: "var(--t1)", fontSize: ".82rem", cursor: "pointer",
-            }}
-          >
-            <option value="">All Statuses</option>
-            {Object.keys(STATUS_COLORS).map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-          <button
-            onClick={load}
-            style={{
-              padding: "8px 16px", background: "var(--bg2)",
-              border: "1px solid var(--bdr)", borderRadius: "8px",
-              color: "var(--t2)", fontSize: ".8rem", cursor: "pointer",
-              display: "flex", alignItems: "center", gap: "6px"
-            }}
-          >
-            <RefreshCw size={14} /> Refresh
-          </button>
-        </div>
-
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1.5fr 100px 130px 80px 100px",
-          padding: "10px 20px",
-          borderBottom: "2px solid var(--bdr)",
-          fontSize: ".62rem", fontWeight: 700,
-          letterSpacing: ".14em", textTransform: "uppercase", color: "var(--t3)",
-        }} className="vr-row">
-          <span>Student</span>
-          <span>Voter ID</span>
-          <span>Status</span>
-          <span>Voted At</span>
-          <span>Booth</span>
-          <span>Actions</span>
-        </div>
-
-        {loading ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "var(--t3)", fontSize: ".86rem" }}>
-            Loading voters…
-          </div>
-        ) : voters.length === 0 ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "var(--t3)", fontSize: ".86rem" }}>
-            No voters found
-          </div>
-        ) : (
-          voters.map((v) => {
-            const computedStatus = v.hasVoted ? "VOTED" : (v.status || "REGISTERED");
-            const sc = STATUS_COLORS[computedStatus] || STATUS_COLORS.REGISTERED;
-            
-            return (
-              <div
-                key={v.voterId}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr 1.5fr 100px 130px 80px 100px",
-                  padding: "12px 20px", borderBottom: "1px solid var(--bdr)",
-                  alignItems: "center", transition: "background .15s",
-                }}
-                className="vr-row"
-                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, color: "var(--t1)", fontSize: ".86rem" }}>
-                    {v.name || `${v.firstName} ${v.lastName}`}
-                  </div>
-                  <div style={{ fontSize: ".7rem", color: "var(--t3)" }}>
-                    {v.mobile} {v.email ? `· ${v.email}` : ""}
-                  </div>
-                </div>
-                <div style={{ fontFamily: "var(--font-m)", fontSize: ".72rem", color: "var(--t3)" }}>
-                  {v.voterId}
-                </div>
-                <div>
-                  <span style={{
-                    padding: "3px 9px", borderRadius: "100px",
-                    fontSize: ".62rem", fontWeight: 700,
-                    background: sc.bg, color: sc.color,
-                  }}>
-                    {sc.label}
-                  </span>
-                </div>
-                <div style={{ fontSize: ".72rem", color: "var(--t3)" }}>
-                  {v.votedAt
-                    ? new Date(v.votedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
-                    : "—"}
-                </div>
-                <div style={{ fontSize: ".72rem", color: "var(--t3)" }}>
-                  {v.booth?.code || "—"}
-                </div>
-                <div>
-                  {computedStatus !== "VOTED" && (
-                    <button
-                      disabled={flaggingId === v.voterId}
-                      onClick={() => flagVoter(v.voterId, computedStatus === "FLAGGED")}
-                      style={{
-                        padding: "4px 10px", borderRadius: "6px",
-                        fontSize: ".65rem", fontWeight: 700, cursor: "pointer",
-                        border: "1px solid",
-                        background: computedStatus === "FLAGGED"
-                          ? "rgba(19,136,8,.1)" : "rgba(239,68,68,.1)",
-                        color: computedStatus === "FLAGGED" ? "var(--gr-l)" : "#EF4444",
-                        borderColor: computedStatus === "FLAGGED"
-                          ? "rgba(19,136,8,.3)" : "rgba(239,68,68,.3)",
-                        transition: "all .2s",
-                        opacity: flaggingId === v.voterId ? 0.5 : 1,
-                      }}
-                    >
-                      {computedStatus === "FLAGGED" ? "Unflag" : "Flag"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-
-        {meta && meta.pages > 1 && (
-          <div style={{
-            padding: "14px 20px", borderTop: "1px solid var(--bdr)",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            fontSize: ".78rem", color: "var(--t3)",
-          }}>
-            <span>Page {meta.page} of {meta.pages}</span>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <PageBtn label="← Prev" disabled={page <= 1} onClick={() => setPage(p => p - 1)} />
-              <PageBtn label="Next →" disabled={page >= meta.pages} onClick={() => setPage(p => p + 1)} />
+      {/* ── NORMAL ADMIN UI (Hidden during print) ── */}
+      <div className="no-print">
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-s)", fontSize: "2rem", fontWeight: 400, color: "var(--t1)", marginBottom: "4px" }}>
+              Voter Registry
+            </div>
+            <div style={{ fontSize: ".82rem", color: "var(--t3)" }}>
+              {meta ? `${meta.total.toLocaleString()} students enrolled · ${meta.voted} voted · ${meta.flagged} flagged` : "Loading…"}
             </div>
           </div>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={fetchAndPrintRoster}
+              disabled={printing}
+              style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                padding: "10px 16px", background: "var(--bg2)",
+                color: "var(--t1)", border: "1px solid var(--bdr)",
+                borderRadius: "9px", fontSize: ".8rem", fontWeight: 600,
+                cursor: printing ? "wait" : "pointer", transition: "all .2s",
+                opacity: printing ? 0.7 : 1
+              }}
+            >
+              <Printer size={16} /> {printing ? "Loading..." : "Print Security Roster"}
+            </button>
+
+            <button
+              onClick={() => setShowForm(v => !v)}
+              style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                padding: "10px 20px",
+                background: showForm
+                  ? "var(--bg2)"
+                  : "linear-gradient(135deg,var(--ck),var(--ck-l))",
+                color: showForm ? "var(--t2)" : "#fff",
+                border: `1px solid ${showForm ? "var(--bdr)" : "transparent"}`,
+                borderRadius: "9px", fontSize: ".8rem", fontWeight: 700,
+                letterSpacing: ".08em", cursor: "pointer", transition: "all .2s",
+              }}
+            >
+              {showForm ? <><X size={16} /> Cancel</> : <><UserPlus size={16} /> Add Voter</>}
+            </button>
+          </div>
+        </div>
+
+        {showForm && (
+          <AddVoterForm
+            onSuccess={() => { setShowForm(false); load(); }}
+            showToast={showToast}
+          />
         )}
+
+        <div style={{
+          background: "var(--bgc)", border: "1px solid var(--bdr)",
+          borderRadius: "12px", overflow: "hidden",
+        }}>
+          <div style={{
+            padding: "14px 20px", borderBottom: "1px solid var(--bdr)",
+            display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap",
+          }}>
+            <input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search name, ID, or mobile…"
+              style={{
+                padding: "8px 14px", background: "var(--bg2)",
+                border: "1px solid var(--bdr)", borderRadius: "8px",
+                color: "var(--t1)", fontSize: ".82rem", flex: 1, minWidth: "180px",
+                transition: "border .2s",
+              }}
+              onFocus={e => e.target.style.borderColor = "var(--ck)"}
+              onBlur={e => e.target.style.borderColor = "var(--bdr)"}
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              style={{
+                padding: "8px 14px", background: "var(--bg2)",
+                border: "1px solid var(--bdr)", borderRadius: "8px",
+                color: "var(--t1)", fontSize: ".82rem", cursor: "pointer",
+              }}
+            >
+              <option value="">All Statuses</option>
+              {Object.keys(STATUS_COLORS).map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <button
+              onClick={load}
+              style={{
+                padding: "8px 16px", background: "var(--bg2)",
+                border: "1px solid var(--bdr)", borderRadius: "8px",
+                color: "var(--t2)", fontSize: ".8rem", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: "6px"
+              }}
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </div>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1.5fr 100px 130px 80px 100px",
+            padding: "10px 20px",
+            borderBottom: "2px solid var(--bdr)",
+            fontSize: ".62rem", fontWeight: 700,
+            letterSpacing: ".14em", textTransform: "uppercase", color: "var(--t3)",
+          }} className="vr-row">
+            <span>Student</span>
+            <span>Voter ID</span>
+            <span>Status</span>
+            <span>Voted At</span>
+            <span>Booth</span>
+            <span>Actions</span>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--t3)", fontSize: ".86rem" }}>
+              Loading voters…
+            </div>
+          ) : voters.length === 0 ? (
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--t3)", fontSize: ".86rem" }}>
+              No voters found
+            </div>
+          ) : (
+            voters.map((v) => {
+              const computedStatus = v.hasVoted ? "VOTED" : (v.status || "REGISTERED");
+              const sc = STATUS_COLORS[computedStatus] || STATUS_COLORS.REGISTERED;
+
+              return (
+                <div
+                  key={v.voterId}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "2fr 1.5fr 100px 130px 80px 100px",
+                    padding: "12px 20px", borderBottom: "1px solid var(--bdr)",
+                    alignItems: "center", transition: "background .15s",
+                  }}
+                  className="vr-row"
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg2)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, color: "var(--t1)", fontSize: ".86rem" }}>
+                      {v.name || `${v.firstName} ${v.lastName}`}
+                    </div>
+                    <div style={{ fontSize: ".7rem", color: "var(--t3)" }}>
+                      {v.mobile} {v.email ? `· ${v.email}` : ""}
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: "var(--font-m)", fontSize: ".72rem", color: "var(--t3)" }}>
+                    {v.voterId}
+                  </div>
+                  <div>
+                    <span style={{
+                      padding: "3px 9px", borderRadius: "100px",
+                      fontSize: ".62rem", fontWeight: 700,
+                      background: sc.bg, color: sc.color,
+                    }}>
+                      {sc.label}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: ".72rem", color: "var(--t3)" }}>
+                    {v.votedAt
+                      ? new Date(v.votedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                      : "—"}
+                  </div>
+                  <div style={{ fontSize: ".72rem", color: "var(--t3)" }}>
+                    {v.booth?.code || "—"}
+                  </div>
+                  <div>
+                    {computedStatus !== "VOTED" && (
+                      <button
+                        disabled={flaggingId === v.voterId}
+                        onClick={() => flagVoter(v.voterId, computedStatus === "FLAGGED")}
+                        style={{
+                          padding: "4px 10px", borderRadius: "6px",
+                          fontSize: ".65rem", fontWeight: 700, cursor: "pointer",
+                          border: "1px solid",
+                          background: computedStatus === "FLAGGED"
+                            ? "rgba(19,136,8,.1)" : "rgba(239,68,68,.1)",
+                          color: computedStatus === "FLAGGED" ? "var(--gr-l)" : "#EF4444",
+                          borderColor: computedStatus === "FLAGGED"
+                            ? "rgba(19,136,8,.3)" : "rgba(239,68,68,.3)",
+                          transition: "all .2s",
+                          opacity: flaggingId === v.voterId ? 0.5 : 1,
+                        }}
+                      >
+                        {computedStatus === "FLAGGED" ? "Unflag" : "Flag"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {meta && meta.pages > 1 && (
+            <div style={{
+              padding: "14px 20px", borderTop: "1px solid var(--bdr)",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              fontSize: ".78rem", color: "var(--t3)",
+            }}>
+              <span>Page {meta.page} of {meta.pages}</span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <PageBtn label="← Prev" disabled={page <= 1} onClick={() => setPage(p => p - 1)} />
+                <PageBtn label="Next →" disabled={page >= meta.pages} onClick={() => setPage(p => p + 1)} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* ── PRINT-ONLY SECURITY ROSTER TABLE ── */}
+      {rosterData && (
+        <div className="print-only">
+          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+            <h1 style={{ fontSize: "24px", margin: "0 0 5px 0" }}>Security Verification Roster</h1>
+            <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
+              Generated on: {new Date().toLocaleString('en-IN')} | Total Registered: {rosterData.length}
+            </p>
+          </div>
+
+          <table className="roster-table">
+            <thead>
+              <tr>
+                <th style={{ width: "5%" }}>#</th>
+                <th style={{ width: "18%" }}>Voter ID / Enrollment</th>
+                <th style={{ width: "22%" }}>Full Name</th>
+                <th style={{ width: "10%" }}>Role</th>
+                <th style={{ width: "15%" }}>Mobile</th>
+                <th style={{ width: "18%" }}>Email</th>
+                <th style={{ width: "12%" }}>Signature / Check</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rosterData.map((voter, index) => (
+                <tr key={index}>
+                  <td>{index + 1}</td>
+                  <td style={{ fontWeight: "bold", fontFamily: "monospace" }}>{voter.voterId}</td>
+                  <td>{voter.name || `${voter.firstName} ${voter.lastName}`}</td>
+                  <td>STUDENT</td>
+                  <td>{voter.mobile}</td>
+                  <td>{voter.email || "N/A"}</td>
+                  <td></td> {/* Empty box for pen/signature */}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── CSS STYLES FOR RESPONSIVE & PRINTING ── */}
       <style>{`
         @media(max-width:900px){
           .vr-row{grid-template-columns:1fr 1fr 100px!important;}
           .vr-row>*:nth-child(4),.vr-row>*:nth-child(5){display:none;}
+        }
+
+        /* PRINT STYLES */
+        .print-only { display: none; }
+        
+        @media print {
+          /* Hide everything in the app except our table */
+          .no-print, aside, nav, .tristrip, button { display: none !important; }
+          .print-only { display: block !important; }
+          
+          /* Expand view to full paper size */
+          body, main, .admin-main-content { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: white !important; 
+            width: 100% !important; 
+            color: black !important;
+          }
+
+          /* Style the physical table */
+          .roster-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+          }
+          .roster-table th, .roster-table td {
+            border: 1px solid #000;
+            padding: 8px 10px;
+            text-align: left;
+          }
+          .roster-table th {
+            background-color: #f0f0f0 !important;
+            -webkit-print-color-adjust: exact;
+            font-weight: bold;
+          }
+          .roster-table tr {
+            page-break-inside: avoid;
+          }
         }
       `}</style>
     </div>

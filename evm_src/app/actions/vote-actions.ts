@@ -12,9 +12,10 @@ export async function castVote(candidateId: number | null) {
     const systemCheck = await sql`SELECT election_status FROM "SystemSettings" LIMIT 1`;
     const currentStatus = systemCheck[0]?.election_status || 'PAUSED';
 
-    // If it's anything other than LIVE, bounce them immediately.
-    if (currentStatus !== 'LIVE') {
-      return { success: false, message: `Voting is currently ${currentStatus}.` };
+    // ✅ THE FIX: Check if status is either LIVE or ACTIVE
+    const statusUpper = currentStatus.toUpperCase();
+    if (statusUpper !== 'LIVE' && statusUpper !== 'ACTIVE') {
+      return { success: false, message: `❌ Voting is currently ${currentStatus}.` };
     }
 
     // 2. Get the securely logged-in user from the httpOnly cookie
@@ -27,7 +28,7 @@ export async function castVote(candidateId: number | null) {
 
     const internalUserId = sessionCookie.value;
 
-    // 3. The Atomic SQL Query
+    // 3. The Atomic SQL Query (Prevents double-voting)
     const result = await sql`
       WITH updated_user AS (
         UPDATE "User"
@@ -46,7 +47,7 @@ export async function castVote(candidateId: number | null) {
       return { success: false, message: "Vote failed: User has already voted or does not exist." };
     }
 
-    // 5. Destroy the session cookie immediately
+    // 5. Destroy the session cookie immediately so the next student can vote
     cookieStore.delete('voter_session');
 
     return { success: true, message: "Vote cast successfully!" };

@@ -11,7 +11,7 @@ import { SystemControl } from "./components/SystemControl";
 // Import your new QR Manager component (forces IDE to re-evaluate)
 import { QRManager } from "@/app/admin/components/QRManager";
 import { LayoutDashboard, Users as UsersIcon, Landmark, Settings, LogOut, Vote, QrCode } from "lucide-react";
-
+export const dynamic = 'force-dynamic';
 // ── Types ──────────────────────────────────────────────────────────────────────
 // Added "qr" to TabId
 export type TabId = "overview" | "voters" | "candidates" | "system" | "qr";
